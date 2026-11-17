@@ -2,7 +2,13 @@
 <header class="bar">
   <span class="brand">Ledger</span>
   <nav aria-label="Main">
+    @if (auth.connected()) {
+    <a routerLink="/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page">Dashboard</a>
+    }
     <a routerLink="/gallery" routerLinkActive="active" ariaCurrentWhenActive="page">Gallery</a>
+    @if (auth.connected()) {
+    <button ui-button variant="ghost" type="button" (click)="disconnect()">Disconnect</button>
+    }
   </nav>
 </header>
 <main id="main" tabindex="-1">

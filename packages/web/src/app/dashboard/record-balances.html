@@ -1,0 +1,35 @@
+<form (submit)="$event.preventDefault(); submit()" novalidate>
+  <p class="hint">
+    Type what each account shows right now. Leave a row empty to keep it as it is. For a card, enter
+    what you owe.
+  </p>
+  @for (account of accounts(); track account.accountId) {
+  <div class="field">
+    <label [for]="'bal-' + account.accountId">{{ label(account) }}</label>
+    <input
+      [id]="'bal-' + account.accountId"
+      type="text"
+      inputmode="decimal"
+      autocomplete="off"
+      [value]="values()[account.accountId] ?? ''"
+      (input)="onInput(account.accountId, $event)"
+      [attr.aria-invalid]="problems()[account.accountId] ? 'true' : null"
+      [attr.aria-describedby]="problems()[account.accountId] ? 'err-' + account.accountId : null"
+    />
+    @if (account.balancePaise !== null) {
+    <span class="current">
+      @if (account.kind === 'card' && account.balancePaise < 0) { you owe
+      <ui-money [amount]="owed(account.balancePaise)" tone="neutral" />
+      } @else { now <ui-money [amount]="account.balancePaise" tone="neutral" /> }
+    </span>
+    } @if (problems()[account.accountId]; as problem) {
+    <p class="problem" [id]="'err-' + account.accountId">{{ problem }}</p>
+    }
+  </div>
+  } @if (failure(); as text) {
+  <p class="problem" role="alert">{{ text }}</p>
+  }
+  <button ui-button variant="primary" type="submit" [disabled]="saving()">
+    {{ saving() ? 'Saving…' : 'Save balances' }}
+  </button>
+</form>

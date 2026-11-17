@@ -1,11 +1,24 @@
 import type { Routes } from '@angular/router';
+import { connectedOnly, disconnectedOnly } from './guards';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'gallery' },
+  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+  {
+    path: 'connect',
+    title: 'Connect · Ledger',
+    canActivate: [disconnectedOnly],
+    loadComponent: () => import('./connect/connect').then((m) => m.Connect),
+  },
+  {
+    path: 'dashboard',
+    title: 'Dashboard · Ledger',
+    canActivate: [connectedOnly],
+    loadComponent: () => import('./dashboard/dashboard').then((m) => m.Dashboard),
+  },
   {
     path: 'gallery',
     title: 'Component gallery · Ledger',
     loadComponent: () => import('./gallery/gallery').then((m) => m.Gallery),
   },
-  { path: '**', redirectTo: 'gallery' },
+  { path: '**', redirectTo: 'dashboard' },
 ];

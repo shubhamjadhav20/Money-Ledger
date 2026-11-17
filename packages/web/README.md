@@ -8,7 +8,7 @@ plain CSS with design tokens, Vitest for unit tests. Money is integer paise end 
 formatted by `@ledger/core`, the same code the API uses.
 
 ```
-pnpm --filter @ledger/web start   # dev server on http://localhost:4200
+pnpm --filter @ledger/web start   # dev server on http://localhost:4200 (forwards /api to the API on :3000)
 pnpm --filter @ledger/web test    # unit tests (jsdom, no browser needed)
 pnpm --filter @ledger/web build   # production build into packages/web/dist
 ```
@@ -22,6 +22,20 @@ pnpm --filter @ledger/web build   # production build into packages/web/dist
   `button[ui-button]`, `button[ui-chip]`). Screens are built from these.
 - `src/app/gallery/`: `/gallery` shows all of them in both themes with made-up data.
 - `src/app/theme.ts`: the theme choice (signal), remembered per device when storage allows.
+- `src/app/api/`: the API client. `decode.ts` / `models.ts` check every response (money must be a safe
+  integer, dates real calendar dates) before it reaches a screen; `api-client.ts` turns failures into
+  one `ApiError` shape; `auth.ts` keeps the token in memory only and adds it to `/api/` calls only.
+- `src/app/connect/`: `/connect`, where an API token is pasted (interim, until the cookie-session login).
+- `src/app/dashboard/`: `/dashboard`, its store (`DashboardStore`), the schedule expansion and the
+  starting-balances form.
+- `src/app/guards.ts`: `connectedOnly` / `disconnectedOnly` route guards.
+- `proxy.conf.json`: the dev proxy. The API has no CORS, so the browser talks to `/api/...` on the
+  dev server, which strips the prefix and forwards to `127.0.0.1:3000`.
+- `src/testing.ts`, `src/testing-api.ts`: spec-only helpers and fake API data (excluded from the app build).
+
+To see it with data: start the API (`docs/HOW-IT-WORKS.md` section 9), create a token with
+`pnpm --filter @ledger/api admin create-token --name laptop --scope full`, run `pnpm --filter @ledger/web start`, and paste the
+token on the Connect screen.
 
 ## Rules for new code
 
