@@ -10,5 +10,11 @@ trustPolicy: no-downgrade
 blockExoticSubdeps: true
 # Dependencies may not run install scripts unless listed below after review.
 strictDepBuilds: true
-allowBuilds: {}
+# Reviewed 2026-11-17 (Angular toolchain): each of these has a prebuilt binary or a JS fallback, so
+# none needs to run an install script. `false` records the decision and keeps installs quiet.
+allowBuilds:
+  '@parcel/watcher': false
+  esbuild: false
+  lmdb: false
+  msgpackr-extract: false
 engineStrict: true

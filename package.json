@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@12.21.0",
   "engines": {
-    "node": ">=24.12.0"
+    "node": ">=24.15.0"
   },
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
@@ -14,9 +14,10 @@
     "typecheck": "tsc -p tsconfig.json && pnpm -r run typecheck",
     "test": "vitest run",
     "build": "pnpm -r --if-present run build",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm build",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm test:web && pnpm build",
     "fixtures": "node scripts/generate-fixtures.ts",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:web": "pnpm --filter @ledger/web test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
