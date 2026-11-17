@@ -48,6 +48,16 @@ describe('spendEvents()', () => {
     expect(events.map((e) => e.amountPaise).sort((a, b) => a - b)).toEqual([-30_000, -25_000]);
   });
 
+  it('never counts SIPs or household transfers as burn', () => {
+    const txs = [
+      tx('sip', 2, -25_000, 'MF SIP', { kind: 'investment' }),
+      tx('home', 2, -10_000, 'MUMMY', { kind: 'family' }),
+      tx('lunch', 1, -250, 'CAFE'),
+    ];
+    const events = spendEvents(txs, reconcile(txs));
+    expect(events.map((e) => e.amountPaise)).toEqual([-25_000]);
+  });
+
   it('dates a bundle at its latest member and marks fixed transactions', () => {
     const txs = [
       tx('a', 5, -1000, 'SHOP'),

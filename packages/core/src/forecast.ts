@@ -8,6 +8,7 @@
  */
 import { addDays, daysBetween } from './dates.ts';
 import type { LocalDate } from './dates.ts';
+import { isPurchaseFlow } from './domain.ts';
 import { paise } from './money.ts';
 import type { Paise } from './money.ts';
 import type { ReconcileResult, ReconcileTx } from './reconcile.ts';
@@ -56,7 +57,7 @@ export function spendEvents(
   const loose = [...result.singles, ...result.unmatched.map((u) => u.txId)];
   for (const id of loose) {
     const t = byId.get(id);
-    if (t === undefined || t.amount >= 0 || t.kind === 'transfer') continue;
+    if (t === undefined || t.amount >= 0 || !isPurchaseFlow(t.kind)) continue;
     events.push({
       date: t.date,
       amountPaise: t.amount,
