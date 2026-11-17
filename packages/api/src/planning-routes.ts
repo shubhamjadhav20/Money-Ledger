@@ -5,16 +5,22 @@
  * Reads need `read` scope; every write needs `full` (no new scope was added). Audit rows carry
  * ids and counts only, never amounts or names.
  */
-import express from 'express';
-import type { Request, RequestHandler, Response } from 'express';
-import type { Kysely } from 'kysely';
+import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { paise } from '@ledger/core';
-import type { LocalDate, PaydayRule } from '@ledger/core';
+import type { PaydayRule } from '@ledger/core';
 import { recordAudit } from './auth.ts';
-import type { RateLimiter, TokenScope } from './auth.ts';
-import type { Database } from './db/schema.ts';
-import { HttpError, fail, idText, isoDate, paiseInt, parseWith } from './http-support.ts';
+import {
+  HttpError,
+  fail,
+  idText,
+  isoDate,
+  jsonBody,
+  missingBalances,
+  paiseInt,
+  parseWith,
+} from './http-support.ts';
+import type { RouteContext } from './http-support.ts';
 import type { PlanningError } from './planning-service.ts';
 import {
   addPotMovement,
@@ -36,16 +42,6 @@ import {
   updateSettings,
 } from './planning-service.ts';
 
-export interface PlanningRouteContext {
-  readonly app: express.Express;
-  readonly db: Kysely<Database>;
-  readonly newId: () => string;
-  /** Today's date in India. */
-  readonly today: () => LocalDate;
-  readonly guard: (need: TokenScope, limiter?: RateLimiter) => RequestHandler;
-  readonly actor: (res: Response) => string | null;
-}
-
 const STATUS_BY_CODE: Readonly<Record<string, number>> = {
   unknown_pot: 404,
   unknown_account: 404,
@@ -58,7 +54,6 @@ export const planningHttpError = (error: PlanningError): HttpError =>
   new HttpError(STATUS_BY_CODE[error.code] ?? 422, error.code, error.message);
 
 const name = z.string().trim().min(1).max(60);
-const jsonBody = express.json({ limit: '10kb' });
 
 const settingsPatch = z.strictObject({
   paydayDay: z.number().int().min(1).max(31).optional(),
@@ -123,7 +118,7 @@ const toRule = (input: z.output<typeof ruleBody>): PaydayRule => {
   return { ...base, kind: 'remainder' };
 };
 
-export function registerPlanningRoutes(ctx: PlanningRouteContext): void {
+export function registerPlanningRoutes(ctx: RouteContext): void {
   const { app, db, newId, guard, actor } = ctx;
   const audit = (
     res: Response,
@@ -315,12 +310,7 @@ export function registerPlanningRoutes(ctx: PlanningRouteContext): void {
   app.get('/free', guard('read'), async (_req, res) => {
     const outcome = await computeFree(db, ctx.today());
     if (!outcome.ok) {
-      return fail(
-        409,
-        'missing_balances',
-        'Record a current balance for every account first (POST /balances)',
-        outcome.missingCheckpoints,
-      );
+      return missingBalances(outcome.missingCheckpoints);
     }
     res.json({ ...outcome.result, balances: outcome.balances, warnings: outcome.warnings });
   });

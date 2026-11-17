@@ -38,9 +38,11 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 
 **M4b-2b done (branch `feat/m4b-pots-free`, stacked on M4b-2a):** migration `003_planning` (settings, pots + append-only `pot_movements`, payday rules/runs, scheduled items, balance checkpoints), `planning-service.ts` (`computeFree` and friends), `planning-routes.ts` (`/settings`, `/pots`, `/payday/*`, `/scheduled`, `/balances`, `/free`), shared `http-support.ts`. 400 tests.
 
-**Next: M4b-2c.** `GET /forecast`, `POST /simulate`, `GET /reconcile`, `PATCH /transactions/:id`. After that M5 (Angular). Ask before adding each dependency.
+**M4b-2c done (branch `feat/m4b-analysis-routes`, stacked on M4b-2b):** `analysis-service.ts` + `analysis-routes.ts` (`GET /forecast`, `POST /simulate` (read scope, no writes), `GET /reconcile`, `PATCH /transactions/:id` for category/kind only), `transaction-view.ts`, shared `RouteContext` in `http-support.ts`, shared HTTP test harness `test-harness.ts`. M4 is complete.
 
-**Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `planning-service` `planning-routes` `http-support` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
+**Next: M5 (Angular app).** Design tokens + component gallery first, then Dashboard, Import, Transactions, Reconcile, Pots, quick-add. Ask before adding each dependency (Angular itself, and Angular CDK/Material only if wanted).
+
+**Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `planning-service` `planning-routes` `analysis-service` `analysis-routes` `transaction-view` `http-support` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
 
 **Decisions:** PLAN.md section 15 (decision log) is the source of truth; read it before changing domain behaviour.
 

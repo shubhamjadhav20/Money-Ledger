@@ -42,6 +42,8 @@ import type { Database } from './db/schema.ts';
 import { HttpError, fail, idText, isoDate, parseWith } from './http-support.ts';
 import { PlanningError } from './planning-service.ts';
 import { planningHttpError, registerPlanningRoutes } from './planning-routes.ts';
+import { registerAnalysisRoutes } from './analysis-routes.ts';
+import { transactionView } from './transaction-view.ts';
 import { confirmImport, planStatement } from './import-service.ts';
 import type { ImportRequest, StatementPlan } from './import-service.ts';
 
@@ -301,19 +303,7 @@ export function createApp(options: AppOptions): express.Express {
     }
     const rows = await query.orderBy('date', 'desc').orderBy('id').limit(q.limit).execute();
     res.json({
-      items: rows.map((r) => ({
-        id: r.id,
-        accountId: r.account_id,
-        date: r.date,
-        amountPaise: r.amount,
-        counterparty: r.counterparty,
-        memo: r.memo,
-        category: r.category,
-        kind: r.kind,
-        method: r.method,
-        status: r.status,
-        source: r.source,
-      })),
+      items: rows.map(transactionView),
     });
   });
 
@@ -383,14 +373,16 @@ export function createApp(options: AppOptions): express.Express {
     res.status(204).end();
   });
 
-  registerPlanningRoutes({
+  const routeContext = {
     app,
     db,
     newId,
     today: () => todayInKolkata(now()),
     guard,
     actor,
-  });
+  };
+  registerPlanningRoutes(routeContext);
+  registerAnalysisRoutes(routeContext);
 
   app.use((_req, _res, next) => {
     next(new HttpError(404, 'not_found', 'No such endpoint'));

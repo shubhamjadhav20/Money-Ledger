@@ -174,6 +174,19 @@ adding a third-party package.
   and it warns when a checkpoint is more than 7 days old.
   Applying a payday is idempotent: the same run id with the same values is a no-op that returns
   the original result, the same id with different values is refused.
+- `analysis-service.ts`: the read side built on top of that.
+  - `forecastFor` reconciles the trailing window (default 14 days), turns the bundles into spend
+    events (a refunded purchase counts at its net; transfers, investments and family transfers
+    never count), takes the daily burn (rounded up) and projects free money to payday. Rows dated
+    in the future are ignored so they cannot hide a purchase that already happened.
+  - `runSimulation` answers "can I afford this?" for UPI, card or Slice in 3 using the same
+    free-to-spend number. Slice in 3 assumes no minimum and no fee until those terms are
+    verified in the app, and the response says so under `assumptions`.
+  - `reconcileRange` runs the reconcile pass over a date range (with a margin so a pair that
+    straddles the edge is seen whole) and returns bundles, the review queue and the transactions
+    they refer to.
+  - `updateTransaction` changes only `category` or `kind`: amounts, dates and statement identity
+    can never be edited through the API.
 
 ## 8. The HTTP API (`packages/api/src/app.ts`)
 
@@ -199,6 +212,10 @@ helpers in `http-support.ts`.
 | `GET /scheduled` (read), `POST /scheduled`, `DELETE /scheduled/:id` (full) | | one-off or monthly outflows |
 | `GET /balances` (read), `POST /balances` (full) | | record "this account holds X today" (never a future date) |
 | `GET /free` | read | the free-to-spend number with its lines, balances and warnings; 409 listing missing balances |
+| `GET /forecast?windowDays&estimator` | read | daily burn, projected free money on payday, runway in days |
+| `POST /simulate` | read | `{ amountPaise, method: upi\|card\|slice_in_3, cardAccountId? }`: what a purchase would do to free-to-spend. A calculation, never a write |
+| `GET /reconcile?from&to` | read | refund/split bundles for a date range (default last 30 days) plus the review queue |
+| `PATCH /transactions/:id` | full | fix a transaction's `category` (or clear it with null) or `kind` |
 
 **Import is stateless.** The client sends the same CSV to preview and to confirm (confirm also
 carries your `choices` for ambiguous rows). The server recomputes the plan inside the commit
@@ -260,7 +277,6 @@ generated; real statements are never committed (the repository is public, and gi
 
 ## 11. Not built yet
 
-- M4b-2c: `GET /forecast`, `POST /simulate` ("can I afford X on Slice in 3?"), `GET /reconcile`, `PATCH /transactions/:id` (fix a category or kind).
 - Web login (argon2id, cookie session, CSRF) arrives with the Angular app.
 - M5: Angular app (dashboard, import with the ambiguity picker, reconcile, pots, PWA quick-add).
 - M6: local MCP server so Claude can answer "can I buy this on Slice in 3?" from your real numbers.
