@@ -14,7 +14,8 @@
     "typecheck": "tsc -p tsconfig.json && pnpm -r run typecheck",
     "test": "vitest run",
     "build": "pnpm -r --if-present run build",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build",
+    "fixtures": "node scripts/generate-fixtures.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

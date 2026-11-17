@@ -8,3 +8,6 @@
 *.woff binary
 *.woff2 binary
 *.pdf binary
+
+# Fixtures are byte-exact on purpose (BOM, CRLF): never normalise them.
+fixtures/** -text
