@@ -28,6 +28,8 @@ pnpm --filter @ledger/web build   # production build into packages/web/dist
 - `src/app/connect/`: `/connect`, where an API token is pasted (interim, until the cookie-session login).
 - `src/app/dashboard/`: `/dashboard`, its store (`DashboardStore`), the schedule expansion and the
   starting-balances form.
+- `src/app/transactions/`: `/transactions`, its store (`TransactionsStore`), the edit form and the
+  kind/method/status labels. `src/app/month.ts` has the month helpers.
 - `src/app/guards.ts`: `connectedOnly` / `disconnectedOnly` route guards.
 - `proxy.conf.json`: the dev proxy. The API has no CORS, so the browser talks to `/api/...` on the
   dev server, which strips the prefix and forwards to `127.0.0.1:3000`.

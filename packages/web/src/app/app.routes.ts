@@ -16,6 +16,12 @@ export const routes: Routes = [
     loadComponent: () => import('./dashboard/dashboard').then((m) => m.Dashboard),
   },
   {
+    path: 'transactions',
+    title: 'Transactions · Ledger',
+    canActivate: [connectedOnly],
+    loadComponent: () => import('./transactions/transactions').then((m) => m.Transactions),
+  },
+  {
     path: 'gallery',
     title: 'Component gallery · Ledger',
     loadComponent: () => import('./gallery/gallery').then((m) => m.Gallery),

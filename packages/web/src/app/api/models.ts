@@ -1,5 +1,6 @@
-import type { LocalDate, Paise } from '@ledger/core';
-import { day, int, list, money, nullable, oneOf, record, text } from './decode';
+import { PAYMENT_METHODS, TX_KINDS } from '@ledger/core';
+import type { LocalDate, Paise, PaymentMethod, TxKind } from '@ledger/core';
+import { day, flag, int, list, money, nullable, oneOf, record, text } from './decode';
 
 export interface FreeLine {
   readonly label: string;
@@ -148,3 +149,92 @@ export const decodeScheduled = (value: unknown): ScheduledView[] =>
       monthlyDay: nullable(s['monthlyDay'], (v) => int(v, 'scheduled.monthlyDay')),
     };
   });
+
+export type TxStatus = 'pending' | 'posted';
+export type TxSource = 'manual' | 'import' | 'sms';
+
+export interface TransactionView {
+  readonly id: string;
+  readonly accountId: string;
+  readonly date: LocalDate;
+  /** Signed: money out is negative. */
+  readonly amountPaise: Paise;
+  readonly counterparty: string;
+  readonly memo: string;
+  readonly category: string | null;
+  readonly kind: TxKind;
+  readonly method: PaymentMethod;
+  readonly status: TxStatus;
+  readonly source: TxSource;
+}
+
+export interface CategorySpend {
+  readonly category: string;
+  readonly spentPaise: Paise;
+  readonly fixed: boolean;
+}
+
+export interface SummaryView {
+  readonly month: string;
+  readonly incomePaise: Paise;
+  readonly spendPaise: Paise;
+  readonly investedPaise: Paise;
+  readonly familyPaise: Paise;
+  readonly fixedSpendPaise: Paise;
+  readonly variableSpendPaise: Paise;
+  /** income - invested - family - spend; negative when more went out than came in. */
+  readonly leftoverPaise: Paise;
+  /** Transfers between your own accounts: counted here, never as spend. */
+  readonly transferCount: number;
+  readonly spendByCategory: readonly CategorySpend[];
+}
+
+const TX_STATUSES = ['pending', 'posted'] as const;
+const TX_SOURCES = ['manual', 'import', 'sms'] as const;
+
+export function decodeTransaction(value: unknown): TransactionView {
+  const t = record(value, 'transaction');
+  return {
+    id: text(t['id'], 'transaction.id'),
+    accountId: text(t['accountId'], 'transaction.accountId'),
+    date: day(t['date'], 'transaction.date'),
+    amountPaise: money(t['amountPaise'], 'transaction.amountPaise'),
+    counterparty: text(t['counterparty'], 'transaction.counterparty'),
+    memo: text(t['memo'], 'transaction.memo'),
+    category: nullable(t['category'], (v) => text(v, 'transaction.category')),
+    kind: oneOf(t['kind'], TX_KINDS, 'transaction.kind'),
+    method: oneOf(t['method'], PAYMENT_METHODS, 'transaction.method'),
+    status: oneOf(t['status'], TX_STATUSES, 'transaction.status'),
+    source: oneOf(t['source'], TX_SOURCES, 'transaction.source'),
+  };
+}
+
+export const decodeTransactions = (value: unknown): TransactionView[] =>
+  list(record(value, 'transactions')['items'], 'transactions.items').map(decodeTransaction);
+
+export function decodeSummary(value: unknown): SummaryView {
+  const r = record(value, 'summary');
+  const byKind = record(r['byKind'], 'summary.byKind');
+  return {
+    month: text(r['month'], 'summary.month'),
+    incomePaise: money(r['incomePaise'], 'summary.incomePaise'),
+    spendPaise: money(r['spendPaise'], 'summary.spendPaise'),
+    investedPaise: money(r['investedPaise'], 'summary.investedPaise'),
+    familyPaise: money(r['familyPaise'], 'summary.familyPaise'),
+    fixedSpendPaise: money(r['fixedSpendPaise'], 'summary.fixedSpendPaise'),
+    variableSpendPaise: money(r['variableSpendPaise'], 'summary.variableSpendPaise'),
+    leftoverPaise: money(r['leftoverPaise'], 'summary.leftoverPaise'),
+    transferCount: int(
+      record(byKind['transfer'], 'summary.byKind.transfer')['count'],
+      'summary.byKind.transfer.count',
+    ),
+    spendByCategory: list(r['spendByCategory'], 'summary.spendByCategory').map((item) => {
+      const c = record(item, 'summary.spendByCategory[]');
+      return {
+        category: text(c['category'], 'category.category'),
+        spentPaise: money(c['spentPaise'], 'category.spentPaise'),
+        fixed: flag(c['fixed'], 'category.fixed'),
+      };
+    }),
+  };
+}

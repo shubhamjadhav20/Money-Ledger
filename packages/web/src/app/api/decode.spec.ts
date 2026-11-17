@@ -1,4 +1,4 @@
-import { day, DecodeError, int, list, money, nullable, oneOf, record, text } from './decode';
+import { day, DecodeError, flag, int, list, money, nullable, oneOf, record, text } from './decode';
 import {
   decodeBalances,
   decodeForecast,
@@ -6,6 +6,9 @@ import {
   decodeMissing,
   decodePots,
   decodeScheduled,
+  decodeSummary,
+  decodeTransaction,
+  decodeTransactions,
 } from './models';
 import {
   BALANCES_JSON,
@@ -14,6 +17,8 @@ import {
   MISSING_JSON,
   POTS_JSON,
   SCHEDULED_JSON,
+  SUMMARY_JSON,
+  TRANSACTIONS_JSON,
 } from '../../testing-api';
 
 describe('decode helpers', () => {
@@ -52,6 +57,12 @@ describe('decode helpers', () => {
     expect(() => oneOf('crypto', ['bank', 'card'] as const, 'kind')).toThrow(
       /kind should be one of bank, card/,
     );
+  });
+
+  it('accepts only real booleans', () => {
+    expect(flag(true, 'x')).toBe(true);
+    expect(() => flag('yes', 'x')).toThrow(/x should be true or false/);
+    expect(() => flag(1, 'x')).toThrow(DecodeError);
   });
 
   it('reads null and missing as none', () => {
@@ -111,5 +122,49 @@ describe('API model decoders', () => {
       /pot\.kind/,
     );
     expect(() => decodeMissing({})).toThrow(/details should be a list/);
+  });
+});
+
+describe('transaction and summary decoders', () => {
+  it('decode transactions, keeping signed paise and a missing category as null', () => {
+    const [chai, , mart, salary] = decodeTransactions(TRANSACTIONS_JSON);
+    expect(chai?.amountPaise).toBe(-25_000);
+    expect(chai?.status).toBe('pending');
+    expect(chai?.counterparty).toBe('');
+    expect(mart?.category).toBeNull();
+    expect(salary?.amountPaise).toBe(8_500_000);
+    expect(salary?.kind).toBe('income');
+  });
+
+  it('refuse a transaction with a wrong kind, method, status or amount', () => {
+    const base = TRANSACTIONS_JSON.items[1];
+    expect(() => decodeTransaction({ ...base, kind: 'gift' })).toThrow(/transaction\.kind/);
+    expect(() => decodeTransaction({ ...base, method: 'crypto' })).toThrow(/transaction\.method/);
+    expect(() => decodeTransaction({ ...base, status: 'void' })).toThrow(/transaction\.status/);
+    expect(() => decodeTransaction({ ...base, amountPaise: -450.5 })).toThrow(
+      /transaction\.amountPaise/,
+    );
+    expect(() => decodeTransaction({ ...base, date: '2026-02-30' })).toThrow(/transaction\.date/);
+  });
+
+  it('decode the monthly summary', () => {
+    const summary = decodeSummary(SUMMARY_JSON);
+    expect(summary.month).toBe('2026-11');
+    expect(summary.spendPaise).toBe(190_000);
+    expect(summary.leftoverPaise).toBe(8_310_000);
+    expect(summary.transferCount).toBe(1);
+    expect(summary.spendByCategory.map((c) => c.category)).toEqual(['Uncategorised', 'Food']);
+  });
+
+  it('refuse a summary with missing parts', () => {
+    expect(() => decodeSummary({ ...SUMMARY_JSON, byKind: {} })).toThrow(
+      /summary\.byKind\.transfer/,
+    );
+    expect(() => decodeSummary({ ...SUMMARY_JSON, spendPaise: 1.5 })).toThrow(
+      /summary\.spendPaise/,
+    );
+    expect(() =>
+      decodeSummary({ ...SUMMARY_JSON, spendByCategory: [{ category: 'x', spentPaise: 1 }] }),
+    ).toThrow(/category\.fixed/);
   });
 });

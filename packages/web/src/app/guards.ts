@@ -10,3 +10,6 @@ export const connectedOnly: CanActivateFn = () =>
 /** The connect screen is pointless once connected. */
 export const disconnectedOnly: CanActivateFn = () =>
   inject(AuthStore).connected() ? inject(Router).parseUrl('/dashboard') : true;
+
+/** Screens that need a token. If the token is lost while on one of these, go back to Connect. */
+export const PROTECTED_PREFIXES = ['/dashboard', '/transactions'] as const;

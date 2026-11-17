@@ -10,6 +10,9 @@ import {
   decodeMissing,
   decodePots,
   decodeScheduled,
+  decodeSummary,
+  decodeTransaction,
+  decodeTransactions,
 } from './models';
 import type {
   AccountBalanceView,
@@ -18,8 +21,11 @@ import type {
   MissingAccount,
   PotView,
   ScheduledView,
+  SummaryView,
+  TransactionView,
+  TxStatus,
 } from './models';
-import type { Paise } from '@ledger/core';
+import type { LocalDate, Paise, TxKind } from '@ledger/core';
 
 /** A failed API call, in the API's own `{ code, message }` terms. `status` 0 means unreachable. */
 export class ApiError extends Error {
@@ -33,6 +39,20 @@ export class ApiError extends Error {
     this.code = code;
     this.details = details;
   }
+}
+
+export interface TransactionQuery {
+  readonly from: LocalDate;
+  readonly to: LocalDate;
+  readonly search?: string;
+  readonly status?: TxStatus;
+  readonly limit: number;
+}
+
+/** Only what the API allows to change on an existing transaction. `null` clears the category. */
+export interface TransactionChange {
+  readonly category?: string | null;
+  readonly kind?: TxKind;
 }
 
 export type FreeResult =
@@ -69,15 +89,16 @@ export class ApiClient {
   private readonly auth = inject(AuthStore);
 
   private async request<T>(
-    method: 'GET' | 'POST',
+    method: 'GET' | 'POST' | 'PATCH',
     path: string,
     decode: (body: unknown) => T,
-    body?: unknown,
+    options: { body?: unknown; params?: Record<string, string | number> } = {},
   ): Promise<T> {
     try {
       const response = await firstValueFrom(
         this.http.request<unknown>(method, `${API_PREFIX}${path}`, {
-          ...(body === undefined ? {} : { body }),
+          ...(options.body === undefined ? {} : { body: options.body }),
+          ...(options.params === undefined ? {} : { params: options.params }),
         }),
       );
       return decode(response);
@@ -123,8 +144,32 @@ export class ApiClient {
   /** Needs a full-access token. Cards owed money are negative. */
   async recordBalance(accountId: string, amountPaise: Paise): Promise<void> {
     await this.request('POST', '/balances', (reply) => record(reply, 'balance reply'), {
-      accountId,
-      amountPaise,
+      body: { accountId, amountPaise },
+    });
+  }
+
+  /** Newest first, at most `limit` rows. Reads only. */
+  transactions(query: TransactionQuery): Promise<TransactionView[]> {
+    return this.request('GET', '/transactions', decodeTransactions, {
+      params: {
+        from: query.from,
+        to: query.to,
+        limit: query.limit,
+        ...(query.search === undefined || query.search === '' ? {} : { q: query.search }),
+        ...(query.status === undefined ? {} : { status: query.status }),
+      },
+    });
+  }
+
+  /** Where the month's money went. `month` is `YYYY-MM`. */
+  summary(month: string): Promise<SummaryView> {
+    return this.request('GET', '/summary', decodeSummary, { params: { month } });
+  }
+
+  /** Needs a full-access token. Changes the category and/or kind, nothing else. */
+  updateTransaction(id: string, change: TransactionChange): Promise<TransactionView> {
+    return this.request('PATCH', `/transactions/${encodeURIComponent(id)}`, decodeTransaction, {
+      body: change,
     });
   }
 }

@@ -35,7 +35,7 @@ describe('App shell', () => {
     expect(nav.querySelector('button')).toBeNull();
   });
 
-  it('shows the dashboard link and a Disconnect button once connected', async () => {
+  it('shows the dashboard and transactions links and a Disconnect button once connected', async () => {
     const { auth } = setup();
     auth.connect('tok');
     const fixture = TestBed.createComponent(App);
@@ -43,6 +43,7 @@ describe('App shell', () => {
     const nav = query(fixture.nativeElement as HTMLElement, 'nav');
     expect([...nav.querySelectorAll('a')].map((a) => a.textContent.trim())).toEqual([
       'Dashboard',
+      'Transactions',
       'Gallery',
     ]);
     expect(query(nav, 'button').textContent.trim()).toBe('Disconnect');
@@ -85,7 +86,7 @@ describe('App shell', () => {
 });
 
 describe('Routing', () => {
-  it.each(['/', '/dashboard', '/nowhere'])(
+  it.each(['/', '/dashboard', '/transactions', '/nowhere'])(
     '%s asks a signed-out visitor to connect',
     async (url) => {
       const { router } = setup();

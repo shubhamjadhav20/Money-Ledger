@@ -1,0 +1,191 @@
+<header class="top">
+  <h1>Transactions</h1>
+  <div class="month" role="group" aria-label="Month">
+    <button
+      ui-button
+      variant="secondary"
+      type="button"
+      aria-label="Previous month"
+      (click)="store.goToMonth(-1)"
+    >
+      ‹
+    </button>
+    <span class="month-label" aria-live="polite">{{ monthLabel() }}</span>
+    <button
+      ui-button
+      variant="secondary"
+      type="button"
+      aria-label="Next month"
+      [disabled]="!store.canGoForward()"
+      (click)="store.goToMonth(1)"
+    >
+      ›
+    </button>
+  </div>
+</header>
+
+@if (store.summary(); as summary) {
+<ui-card class="summary">
+  <h2>{{ monthLabel() }} at a glance</h2>
+  <dl class="stats">
+    <div>
+      <dt>Income</dt>
+      <dd><ui-money [amount]="summary.incomePaise" tone="neutral" size="lg" /></dd>
+    </div>
+    <div>
+      <dt>Spent</dt>
+      <dd><ui-money [amount]="summary.spendPaise" tone="neutral" size="lg" /></dd>
+    </div>
+    <div>
+      <dt>Invested</dt>
+      <dd><ui-money [amount]="summary.investedPaise" tone="neutral" size="lg" /></dd>
+    </div>
+    <div>
+      <dt>Family</dt>
+      <dd><ui-money [amount]="summary.familyPaise" tone="neutral" size="lg" /></dd>
+    </div>
+    <div>
+      <dt>Left over</dt>
+      <dd><ui-money [amount]="summary.leftoverPaise" size="lg" /></dd>
+    </div>
+  </dl>
+  @if (summary.transferCount > 0) {
+  <p class="muted">
+    {{ plural(summary.transferCount, 'transfer') }} between your own accounts, not counted as
+    spending.
+  </p>
+  } @if (store.topCategories().length > 0) {
+  <h3>Where the spending went</h3>
+  <ul class="lines">
+    @for (category of store.topCategories(); track category.category) {
+    <li>
+      <span>
+        {{ category.category }} @if (category.fixed) {
+        <ui-badge>Fixed</ui-badge>
+        }
+      </span>
+      <ui-money [amount]="category.spentPaise" tone="neutral" />
+    </li>
+    }
+  </ul>
+  @if (store.moreCategories() > 0) {
+  <p class="muted">and {{ plural(store.moreCategories(), 'more category', 'more categories') }}</p>
+  } }
+</ui-card>
+}
+
+<form class="filters" role="search" (submit)="$event.preventDefault(); search(box.value)">
+  <div class="field grow">
+    <label for="tx-search">Search</label>
+    <input
+      #box
+      class="control"
+      id="tx-search"
+      type="search"
+      maxlength="80"
+      autocomplete="off"
+      placeholder="Name or note"
+      [value]="store.search()"
+    />
+  </div>
+  <div class="field">
+    <label for="tx-status">Status</label>
+    <select class="control" id="tx-status" (change)="onStatus($event)">
+      <option value="all" [selected]="store.statusFilter() === 'all'">All</option>
+      <option value="pending" [selected]="store.statusFilter() === 'pending'">Pending</option>
+      <option value="posted" [selected]="store.statusFilter() === 'posted'">Posted</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="tx-kind">Kind</label>
+    <select class="control" id="tx-kind" (change)="onKind($event)">
+      <option value="all" [selected]="store.kindFilter() === 'all'">All</option>
+      @for (kind of kinds; track kind) {
+      <option [value]="kind" [selected]="store.kindFilter() === kind">
+        {{ kindLabels[kind] }}
+      </option>
+      }
+    </select>
+  </div>
+  <button ui-button variant="primary" type="submit">Search</button>
+  @if (store.filtering()) {
+  <button ui-button variant="ghost" type="button" (click)="store.clearFilters()">Clear</button>
+  }
+</form>
+
+@switch (store.status()) { @case ('error') {
+<ui-state-message
+  kind="error"
+  title="Could not load transactions"
+  [description]="store.error() ?? ''"
+>
+  <button ui-button variant="primary" type="button" (click)="reload()">Try again</button>
+</ui-state-message>
+} @case ('ready') { @if (store.visible().length === 0) {
+<ui-state-message
+  kind="empty"
+  [title]="store.filtering() ? 'Nothing matches' : 'No transactions in ' + monthLabel()"
+  [description]="
+          store.filtering()
+            ? 'Try a different search, or clear the filters.'
+            : 'Import a statement or add entries and they will show up here.'
+        "
+/>
+} @else {
+<p class="muted count" role="status">
+  {{ plural(store.visible().length, 'transaction') }} @if (store.truncated()) { (the latest {{
+  store.rows().length }}; search or filter to narrow down) }
+</p>
+<ul class="rows">
+  @for (tx of store.visible(); track tx.id) {
+  <li class="row">
+    <div class="main">
+      <p class="who">{{ title(tx) }}</p>
+      @if (tx.counterparty !== '' && tx.memo !== '') {
+      <p class="muted note">{{ tx.memo }}</p>
+      }
+      <p class="muted meta">
+        {{ formatDay(tx.date) }} · {{ store.accountName(tx.accountId) }} · {{
+        methodLabels[tx.method] }}
+      </p>
+      <p class="tags">
+        <ui-badge [tone]="tx.status === 'pending' ? 'warning' : 'neutral'">
+          {{ statusLabels[tx.status] }}
+        </ui-badge>
+        <ui-badge>{{ kindLabels[tx.kind] }}</ui-badge>
+        @if (tx.category !== null) {
+        <ui-badge tone="info">{{ tx.category }}</ui-badge>
+        } @else {
+        <span class="muted uncategorised">Uncategorised</span>
+        }
+      </p>
+    </div>
+    <ui-money class="amount" [amount]="tx.amountPaise" [showPlus]="true" />
+    <button
+      ui-button
+      variant="ghost"
+      type="button"
+      class="edit"
+      [attr.aria-expanded]="editingId() === tx.id"
+      [attr.aria-label]="'Edit ' + title(tx)"
+      (click)="editingId() === tx.id ? editingId.set(null) : edit(tx)"
+    >
+      {{ editingId() === tx.id ? 'Close' : 'Edit' }}
+    </button>
+    @if (editingId() === tx.id) {
+    <div class="editor">
+      <app-transaction-editor
+        [tx]="tx"
+        [saving]="store.savingId() === tx.id"
+        [failure]="store.saveError()"
+        (save)="save(tx, $event)"
+        (cancel)="editingId.set(null)"
+      />
+    </div>
+    }
+  </li>
+  }
+</ul>
+} } @default {
+<ui-state-message kind="loading" title="Loading transactions" />
+} }
