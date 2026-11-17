@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { localDate } from './dates.ts';
 import { paise, sumPaise } from './money.ts';
@@ -184,5 +185,59 @@ describe('counterpartySimilarity()', () => {
   it('is 0 for unrelated parties and when nothing meaningful is left', () => {
     expect(counterpartySimilarity('GROCER ONE', 'FRIEND DELTA')).toBe(0);
     expect(counterpartySimilarity('UPI/123', 'NEFT')).toBe(0);
+  });
+});
+
+describe('reconcile(): properties', () => {
+  const arbitraryTxs = fc
+    .array(
+      fc.record({
+        day: fc.integer({ min: 1, max: 28 }),
+        // Few distinct amounts so random sets actually produce links and ambiguity.
+        amount: fc.constantFrom(-7250, -7246, -500, -499, 500, 7197, 7250, 0),
+        who: fc.constantFrom('SHOP', 'SHOP REFUND', 'FRIEND', 'CAFE'),
+        transfer: fc.boolean(),
+      }),
+      { maxLength: 24 },
+    )
+    .map((rows) =>
+      rows.map((row, i) =>
+        tx(
+          `t${String(i)}`,
+          row.day,
+          row.amount,
+          row.who,
+          row.transfer && i % 5 === 0 ? { kind: 'transfer' } : {},
+        ),
+      ),
+    );
+
+  it('every non-transfer transaction lands in exactly one place (exactly-once invariant)', () => {
+    fc.assert(
+      fc.property(arbitraryTxs, (txs) => {
+        const { bundles, unmatched, singles } = reconcile(txs);
+        const placed = [
+          ...bundles.flatMap((b) => b.txIds),
+          ...unmatched.map((u) => u.txId),
+          ...singles,
+        ];
+        const expected = txs.filter((t) => t.kind !== 'transfer').map((t) => t.id);
+        expect(sorted(placed)).toEqual(sorted(expected));
+      }),
+    );
+  });
+
+  it('money is conserved: bundle nets + leftovers equal the original total', () => {
+    fc.assert(
+      fc.property(arbitraryTxs, (txs) => {
+        const { bundles, unmatched, singles } = reconcile(txs);
+        const amountOf = new Map(txs.map((t) => [t.id, t.amount]));
+        const leftovers = [...unmatched.map((u) => u.txId), ...singles].map(
+          (id) => amountOf.get(id) ?? paise(0),
+        );
+        const total = sumPaise(txs.filter((t) => t.kind !== 'transfer').map((t) => t.amount));
+        expect(sumPaise([...bundles.map((b) => b.netPaise), ...leftovers])).toBe(total);
+      }),
+    );
   });
 });

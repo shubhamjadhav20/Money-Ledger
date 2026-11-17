@@ -17,6 +17,8 @@ export interface Pot {
   readonly targetPaise?: Paise;
   /** For bill pots: when the bill is next due. */
   readonly dueDate?: LocalDate;
+  /** For a card-bill pot: the card account it pays. Free-to-spend reserves max(pot, card owed). */
+  readonly coversCardAccountId?: string;
 }
 
 export interface PotMovement {
