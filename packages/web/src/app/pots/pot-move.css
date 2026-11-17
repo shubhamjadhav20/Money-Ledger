@@ -1,0 +1,61 @@
+:host {
+  display: block;
+}
+
+form {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 28rem;
+}
+
+.field {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+label {
+  font-weight: var(--weight-medium);
+}
+
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+legend {
+  font-weight: var(--weight-medium);
+  padding: 0;
+  margin-bottom: var(--space-1);
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap-target);
+  font-weight: var(--weight-regular);
+}
+
+.hint {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.note {
+  font-size: var(--text-sm);
+}
+
+.problem {
+  color: var(--color-negative);
+  font-size: var(--text-sm);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

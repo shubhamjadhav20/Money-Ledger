@@ -1,0 +1,68 @@
+<form (submit)="$event.preventDefault(); submit()" novalidate>
+  <fieldset class="direction">
+    <legend>What are you doing?</legend>
+    <label class="choice">
+      <input
+        type="radio"
+        [name]="id() + '-dir'"
+        [checked]="direction() === 'in'"
+        (change)="onDirection('in')"
+      />
+      Put money in
+    </label>
+    <label class="choice">
+      <input
+        type="radio"
+        [name]="id() + '-dir'"
+        [checked]="direction() === 'out'"
+        (change)="onDirection('out')"
+      />
+      Take money out
+    </label>
+  </fieldset>
+
+  <div class="field">
+    <label [for]="id() + '-amount'">Amount (₹)</label>
+    <input
+      class="control"
+      [id]="id() + '-amount'"
+      type="text"
+      inputmode="decimal"
+      autocomplete="off"
+      [value]="typed()"
+      (input)="onTyped($event)"
+      [attr.aria-invalid]="problem() ? 'true' : null"
+      [attr.aria-describedby]="problem() ? id() + '-err' : null"
+    />
+    @if (problem(); as text) {
+    <p class="problem" [id]="id() + '-err'">{{ text }}</p>
+    } @if (overdraws()) {
+    <p class="note" role="status">
+      That is more than the pot holds (<ui-money [amount]="pot().balancePaise" tone="neutral" />),
+      so its balance will go below zero.
+    </p>
+    }
+  </div>
+
+  <div class="field">
+    <label [for]="id() + '-reason'">Why</label>
+    <select class="control" [id]="id() + '-reason'" (change)="onReason($event)">
+      @for (option of reasons; track option.id) {
+      <option [value]="option.id" [selected]="option.id === reason()">{{ option.label }}</option>
+      }
+    </select>
+    <p class="hint">Saved as a new line in the pot's history; nothing is overwritten.</p>
+  </div>
+
+  @if (failure(); as text) {
+  <p class="problem" role="alert">{{ text }}</p>
+  }
+  <div class="actions">
+    <button ui-button variant="primary" type="submit" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : direction() === 'in' ? 'Put money in' : 'Take money out' }}
+    </button>
+    <button ui-button variant="ghost" type="button" [disabled]="saving()" (click)="cancel.emit()">
+      Cancel
+    </button>
+  </div>
+</form>

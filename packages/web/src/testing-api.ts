@@ -12,6 +12,8 @@ import {
   decodeFree,
   decodeImportOutcome,
   decodeImportPlan,
+  decodePot,
+  decodePotMovements,
   decodePots,
   decodeScheduled,
   decodeSummary,
@@ -87,6 +89,32 @@ export const POTS_JSON = {
       targetPaise: null,
       dueDate: '2026-12-01',
     },
+  ],
+};
+
+/** A bill pot that covers a card, kept apart so the Dashboard fixtures stay as they are. */
+export const CARD_POT_JSON = {
+  id: 'pot-card',
+  name: 'ICICI card bill',
+  kind: 'bill',
+  balancePaise: 90_000,
+  targetPaise: null,
+  dueDate: '2026-12-08',
+  coversCardAccountId: 'acc-card',
+};
+
+/** The journal of the Emergency buffer pot, oldest first as the API sends it. */
+export const MOVEMENTS_JSON = {
+  items: [
+    {
+      id: 'm-1',
+      potId: 'pot-buffer',
+      amountPaise: 300_000,
+      reason: 'payday',
+      date: '2026-11-07',
+      paydayRunId: 'run-1',
+    },
+    { id: 'm-2', potId: 'pot-buffer', amountPaise: -100_000, reason: 'spend', date: '2026-11-12' },
   ],
 };
 
@@ -297,7 +325,9 @@ export const IMPORT_OUTCOME_JSON = {
 export const FREE = decodeFree(FREE_JSON);
 export const FORECAST = decodeForecast(FORECAST_JSON);
 export const POTS = decodePots(POTS_JSON);
+export const decodePotFixture = decodePot;
 export const SCHEDULED = decodeScheduled(SCHEDULED_JSON);
+export const MOVEMENTS = decodePotMovements(MOVEMENTS_JSON);
 export const BALANCES = decodeBalances(BALANCES_JSON);
 export const TRANSACTIONS = decodeTransactions(TRANSACTIONS_JSON);
 export const SUMMARY = decodeSummary(SUMMARY_JSON);
@@ -311,6 +341,10 @@ export type Api = Pick<
   | 'free'
   | 'forecast'
   | 'pots'
+  | 'createPot'
+  | 'updatePot'
+  | 'potMovements'
+  | 'addPotMovement'
   | 'scheduled'
   | 'balances'
   | 'recordBalance'
@@ -349,6 +383,17 @@ export function fakeApi(over: Partial<Api> = {}) {
     free: vi.fn(over.free ?? (() => Promise.resolve(ready))),
     forecast: vi.fn(over.forecast ?? (() => Promise.resolve(FORECAST))),
     pots: vi.fn(over.pots ?? (() => Promise.resolve(POTS))),
+    createPot: vi.fn(over.createPot ?? (() => Promise.resolve('pot-new'))),
+    updatePot: vi.fn(
+      over.updatePot ??
+        ((id, change) => {
+          const pot = POTS.find((p) => p.id === id);
+          if (pot === undefined) return Promise.reject(new Error('no such fixture'));
+          return Promise.resolve({ ...pot, ...change });
+        }),
+    ),
+    potMovements: vi.fn(over.potMovements ?? (() => Promise.resolve(MOVEMENTS))),
+    addPotMovement: vi.fn(over.addPotMovement ?? (() => Promise.resolve())),
     scheduled: vi.fn(over.scheduled ?? (() => Promise.resolve(SCHEDULED))),
     balances: vi.fn(over.balances ?? (() => Promise.resolve(BALANCES))),
     recordBalance: vi.fn(over.recordBalance ?? (() => Promise.resolve())),

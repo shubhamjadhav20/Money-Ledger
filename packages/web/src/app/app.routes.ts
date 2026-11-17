@@ -28,6 +28,12 @@ export const routes: Routes = [
     loadComponent: () => import('./import/import-screen').then((m) => m.ImportScreen),
   },
   {
+    path: 'pots',
+    title: 'Pots · Ledger',
+    canActivate: [connectedOnly],
+    loadComponent: () => import('./pots/pots').then((m) => m.Pots),
+  },
+  {
     path: 'gallery',
     title: 'Component gallery · Ledger',
     loadComponent: () => import('./gallery/gallery').then((m) => m.Gallery),
