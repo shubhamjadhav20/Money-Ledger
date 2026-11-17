@@ -279,8 +279,8 @@ generated; real statements are never committed (the repository is public, and gi
 
 ## 10b. The web app (`packages/web`)
 
-So far: the look and the parts every screen is built from, plus three real screens: **Connect**,
-the **Dashboard** and **Transactions**.
+So far: the look and the parts every screen is built from, plus four real screens: **Connect**,
+the **Dashboard**, **Transactions** and **Import**.
 
 - **Design tokens** (`src/styles/tokens.css`): every colour, size, radius and duration lives in
   one file as CSS variables. Dark is the default; light follows your phone's setting or your
@@ -340,10 +340,39 @@ port 3000 (the API deliberately allows no cross-site calls), so run both side by
   spelling stays the same. After a save the month's totals refresh without the list flashing.
   Saving needs a full-access token; a read-only token gets a clear message.
 
+**Import** (`/import`) brings in a bank or card statement (a CSV file) in three steps. Nothing is
+saved until the last one.
+1. **Choose.** Pick the account, the statement layout (the demo layouts for now: FakeBank savings
+   and DemoCard credit card) and the file. The file is read in your browser and sent only to your
+   own API; the page keeps it in memory just long enough to import it, and forgets it afterwards.
+   Cash accounts are not offered, because cash never appears on a statement. An empty file, or
+   one over about 2 MB, is refused with a plain message.
+2. **Review.** The API works out what *would* happen and the page shows it as four counts: new
+   transactions, entries you added by hand that the statement would complete, rows already
+   imported earlier (skipped, so nothing counts twice), and rows that need your decision. Lists
+   below show the new rows and the entries that would be completed. If a row cannot be read
+   exactly (a bad date or amount), the page lists the first few problems and blocks the import:
+   a statement is never half-read.
+3. **Decide the ambiguous ones.** Sometimes one bank row could be one of several entries you added
+   by hand (for example two ₹175.39 bakery payments a day apart), or two identical bank rows
+   compete for the same entry. The page asks, one question per row: pick the right entry, or say
+   "None of these: it is a separate payment". Each choice re-asks the API for the plan, so the
+   counts always reflect your choices; the picker stays open so you can change your mind. If you
+   pick the same entry for two rows, the page tells you. Rows you leave undecided are left out of
+   this import and come back the next time you import the same file.
+4. **Import.** One button, with the number it will import. The API repeats the whole calculation
+   from the same file and choices inside one database transaction, so a stale review can never
+   count anything twice. The result says how many were added, completed, skipped and left out, and
+   links to Transactions.
+
+Importing needs a full-access token; with a read-only token you can open the page but the preview
+explains that it needs a full-access one. Names and notes from the file are shown as plain text,
+never as markup.
+
 ## 11. Not built yet
 
 - Web login (argon2id, cookie session, CSRF) arrives with the Angular app.
-- M5, remaining screens: import with the ambiguity picker, reconcile, pots, PWA quick-add. The API client, Dashboard and Transactions are done.
+- M5, remaining screens: reconcile, pots, PWA quick-add. The API client, Dashboard, Transactions and Import are done.
 - M6: local MCP server so Claude can answer "can I buy this on Slice in 3?" from your real numbers.
 - M7: public demo with generated data. M8: private deployment and the Telegram bot.
 

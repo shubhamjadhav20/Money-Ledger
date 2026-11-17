@@ -22,6 +22,12 @@ export const routes: Routes = [
     loadComponent: () => import('./transactions/transactions').then((m) => m.Transactions),
   },
   {
+    path: 'import',
+    title: 'Import · Ledger',
+    canActivate: [connectedOnly],
+    loadComponent: () => import('./import/import-screen').then((m) => m.ImportScreen),
+  },
+  {
     path: 'gallery',
     title: 'Component gallery · Ledger',
     loadComponent: () => import('./gallery/gallery').then((m) => m.Gallery),
