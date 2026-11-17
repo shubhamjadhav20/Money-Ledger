@@ -207,7 +207,7 @@ Verify the SDK's current registration API (`registerTool` vs older `tool`) and p
 
 **M0 — Scaffold (day 1)**
 - [x] `git init`, `.gitignore`, `.gitattributes`, gitleaks first; then workspaces (core, api, tools, mcp; web is a placeholder until M5), strict tsconfig, ESLint, Prettier, Vitest.
-- [ ] CI green on GitHub (green locally via `pnpm check`; needs the first push).
+- [x] CI green on GitHub (CI + CodeQL passing on main).
 - [x] `CLAUDE.md` committed (section 12).
 - [x] Pre-flight verifications (section 14); results in CLAUDE.md "Toolchain facts".
 
