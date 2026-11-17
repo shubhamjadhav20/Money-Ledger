@@ -7,6 +7,8 @@ import {
   decodeBalances,
   decodeForecast,
   decodeFree,
+  decodeImportOutcome,
+  decodeImportPlan,
   decodeMissing,
   decodePots,
   decodeScheduled,
@@ -18,6 +20,8 @@ import type {
   AccountBalanceView,
   ForecastView,
   FreeView,
+  ImportOutcomeView,
+  ImportPlanView,
   MissingAccount,
   PotView,
   ScheduledView,
@@ -42,8 +46,8 @@ export class ApiError extends Error {
 }
 
 export interface TransactionQuery {
-  readonly from: LocalDate;
-  readonly to: LocalDate;
+  readonly from?: LocalDate;
+  readonly to?: LocalDate;
   readonly search?: string;
   readonly status?: TxStatus;
   readonly limit: number;
@@ -53,6 +57,14 @@ export interface TransactionQuery {
 export interface TransactionChange {
   readonly category?: string | null;
   readonly kind?: TxKind;
+}
+
+/** One uploaded statement. `choices` maps a row key to the pending entry it is, or `'new'`. */
+export interface ImportRequest {
+  readonly accountId: string;
+  readonly mappingId: string;
+  readonly csv: string;
+  readonly choices?: Readonly<Record<string, string>>;
 }
 
 export type FreeResult =
@@ -152,9 +164,9 @@ export class ApiClient {
   transactions(query: TransactionQuery): Promise<TransactionView[]> {
     return this.request('GET', '/transactions', decodeTransactions, {
       params: {
-        from: query.from,
-        to: query.to,
         limit: query.limit,
+        ...(query.from === undefined ? {} : { from: query.from }),
+        ...(query.to === undefined ? {} : { to: query.to }),
         ...(query.search === undefined || query.search === '' ? {} : { q: query.search }),
         ...(query.status === undefined ? {} : { status: query.status }),
       },
@@ -171,5 +183,15 @@ export class ApiClient {
     return this.request('PATCH', `/transactions/${encodeURIComponent(id)}`, decodeTransaction, {
       body: change,
     });
+  }
+
+  /** What importing would do, with no changes made. Needs a full-access token. */
+  previewImport(request: ImportRequest): Promise<ImportPlanView> {
+    return this.request('POST', '/imports', decodeImportPlan, { body: request });
+  }
+
+  /** Imports for real. The server re-plans from the same file and choices, so nothing counts twice. */
+  confirmImport(request: ImportRequest): Promise<ImportOutcomeView> {
+    return this.request('POST', '/imports/confirm', decodeImportOutcome, { body: request });
   }
 }

@@ -7,6 +7,8 @@ import {
   BALANCES_JSON,
   FORECAST_JSON,
   FREE_JSON,
+  IMPORT_OUTCOME_JSON,
+  IMPORT_PLAN_JSON,
   MISSING_JSON,
   POTS_JSON,
   SCHEDULED_JSON,
@@ -239,5 +241,70 @@ describe('ApiClient', () => {
       request.flush({ error: 'x' }, { status: 404, statusText: 'Not Found' });
       expect((await failure(result)).status).toBe(404);
     });
+  });
+
+  describe('importing', () => {
+    const request = { accountId: 'acc-bank', mappingId: 'fakebank-savings', csv: 'a,b\n1,2' };
+
+    it('previews with a POST of the file, account, layout and no choices', async () => {
+      const result = api.previewImport(request);
+      const call = backend.expectOne('/api/imports');
+      expect(call.request.method).toBe('POST');
+      expect(call.request.body).toEqual(request);
+      call.flush(IMPORT_PLAN_JSON);
+      expect((await result).ambiguous).toHaveLength(1);
+    });
+
+    it('sends the choices when there are any', async () => {
+      const result = api.previewImport({ ...request, choices: { 'k-bakery#1': 'p-bakery-a' } });
+      const call = backend.expectOne('/api/imports');
+      expect(call.request.body).toEqual({ ...request, choices: { 'k-bakery#1': 'p-bakery-a' } });
+      call.flush(IMPORT_PLAN_JSON);
+      await result;
+    });
+
+    it('confirms with a POST to the confirm endpoint', async () => {
+      const result = api.confirmImport(request);
+      const call = backend.expectOne('/api/imports/confirm');
+      expect(call.request.method).toBe('POST');
+      call.flush(IMPORT_OUTCOME_JSON);
+      expect((await result).inserted).toBe(2);
+    });
+
+    it('reports rows that could not be read on confirm as an error carrying the details', async () => {
+      const result = api.confirmImport(request);
+      backend.expectOne('/api/imports/confirm').flush(
+        {
+          code: 'parse_issues',
+          message: 'The file has rows that could not be read; nothing was imported',
+          details: [{ line: 7, reason: 'Bad date' }],
+        },
+        { status: 422, statusText: 'Unprocessable' },
+      );
+      const error = await failure(result);
+      expect([error.status, error.code]).toEqual([422, 'parse_issues']);
+    });
+
+    it('says when a read-only token tries to import', async () => {
+      const result = api.previewImport(request);
+      backend
+        .expectOne('/api/imports')
+        .flush(
+          { code: 'forbidden', message: 'needs full' },
+          { status: 403, statusText: 'Forbidden' },
+        );
+      expect((await failure(result)).status).toBe(403);
+      expect(auth.connected()).toBe(true);
+    });
+  });
+
+  it('asks for pending entries across all dates when no range is given', async () => {
+    const result = api.transactions({ status: 'pending', limit: 200 });
+    const call = backend.expectOne((r) => r.url === '/api/transactions');
+    expect(call.request.params.get('status')).toBe('pending');
+    expect(call.request.params.has('from')).toBe(false);
+    expect(call.request.params.has('to')).toBe(false);
+    call.flush({ items: [] });
+    await result;
   });
 });

@@ -30,6 +30,8 @@ pnpm --filter @ledger/web build   # production build into packages/web/dist
   starting-balances form.
 - `src/app/transactions/`: `/transactions`, its store (`TransactionsStore`), the edit form and the
   kind/method/status labels. `src/app/month.ts` has the month helpers.
+- `src/app/import/`: `/import`, its store (`ImportStore`: the file lives only here), the screen with the
+  ambiguity picker. Statement layouts come from core's `DEMO_MAPPINGS`.
 - `src/app/guards.ts`: `connectedOnly` / `disconnectedOnly` route guards.
 - `proxy.conf.json`: the dev proxy. The API has no CORS, so the browser talks to `/api/...` on the
   dev server, which strips the prefix and forwards to `127.0.0.1:3000`.

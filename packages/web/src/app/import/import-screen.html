@@ -1,0 +1,240 @@
+<header class="top">
+  <h1>Import a statement</h1>
+</header>
+
+@if (store.error(); as problem) {
+<p class="banner problem" role="alert">{{ problem }}</p>
+} @switch (store.step()) { @case ('choose') { @if (store.accountsState() === 'error') {
+<ui-state-message
+  kind="error"
+  title="Could not load your accounts"
+  description="They are needed to say where the statement belongs."
+>
+  <button ui-button variant="primary" type="button" (click)="reloadAccounts()">Try again</button>
+</ui-state-message>
+} @else {
+<ui-card>
+  <form (submit)="$event.preventDefault(); preview()" novalidate>
+    <div class="field">
+      <label for="imp-account">Account</label>
+      <select
+        class="control"
+        id="imp-account"
+        [disabled]="store.accountsState() === 'loading'"
+        (change)="onAccount($event)"
+      >
+        <option value="" [selected]="store.accountId() === ''">Choose an account</option>
+        @for (account of store.statementAccounts(); track account.accountId) {
+        <option [value]="account.accountId" [selected]="store.accountId() === account.accountId">
+          {{ account.name }}
+        </option>
+        }
+      </select>
+    </div>
+    <div class="field">
+      <label for="imp-layout">Statement layout</label>
+      <select class="control" id="imp-layout" (change)="onLayout($event)">
+        <option value="" [selected]="store.mappingId() === ''">Choose a layout</option>
+        @for (layout of store.layouts; track layout.id) {
+        <option [value]="layout.id" [selected]="store.mappingId() === layout.id">
+          {{ layout.label }}
+        </option>
+        }
+      </select>
+    </div>
+    <div class="field">
+      <label for="imp-file">Statement file (CSV)</label>
+      <input
+        class="control file"
+        id="imp-file"
+        type="file"
+        accept=".csv,text/csv"
+        (change)="onFile($event)"
+      />
+      @if (store.fileName(); as name) {
+      <p class="muted">Ready: {{ name }}</p>
+      } @if (store.fileError(); as problem) {
+      <p class="problem" role="alert">{{ problem }}</p>
+      }
+    </div>
+    <p class="muted hint">
+      Nothing is saved yet. You will see what would change and confirm it. The file is read in this
+      browser and sent only to your own API.
+    </p>
+    <button ui-button variant="primary" type="submit" [disabled]="!store.canPreview()">
+      {{ store.busy() === 'previewing' ? 'Checking…' : 'Preview import' }}
+    </button>
+  </form>
+</ui-card>
+} } @case ('review') { @if (store.plan(); as plan) {
+<p class="muted">Into <strong>{{ store.accountName() }}</strong>. Nothing has been saved yet.</p>
+
+<dl class="counts" aria-label="What would happen">
+  <div>
+    <dt>New transactions</dt>
+    <dd>{{ plan.toInsert.length }}</dd>
+  </div>
+  <div>
+    <dt>Complete entries you added</dt>
+    <dd>{{ plan.merges.length }}</dd>
+  </div>
+  <div>
+    <dt>Already imported</dt>
+    <dd>{{ plan.duplicateCount }}</dd>
+  </div>
+  <div>
+    <dt>Need your decision</dt>
+    <dd>{{ plan.ambiguous.length }}</dd>
+  </div>
+</dl>
+
+@if (plan.issues.length > 0) {
+<ui-card class="issues">
+  <h2>Some rows could not be read</h2>
+  <p>
+    Nothing is imported while a row cannot be read exactly. Fix the file, or pick the right layout,
+    and choose it again.
+  </p>
+  <ul>
+    @for (issue of issues(plan.issues); track $index) {
+    <li><strong>{{ issueLine(issue) }}:</strong> {{ issue.reason }}</li>
+    }
+  </ul>
+  @if (moreIssues(plan.issues) > 0) {
+  <p class="muted">and {{ plural(moreIssues(plan.issues), 'more problem') }}</p>
+  }
+</ui-card>
+} @if (store.decisions().length > 0) {
+<section aria-labelledby="imp-decide">
+  <h2 id="imp-decide">Which of your entries is each of these?</h2>
+  <p class="muted">
+    Each row below could be more than one entry you added by hand. Pick the right one, or say it is
+    a separate payment. Rows without a decision are left out for now.
+  </p>
+  @for (row of store.decisions(); track row.rowKey; let n = $index) {
+  <fieldset class="pick">
+    <legend>
+      {{ row.counterparty || 'Statement row' }} · {{ formatDay(row.date) }} ·
+      <ui-money [amount]="row.amountPaise" tone="neutral" />
+    </legend>
+    @for (candidate of store.candidates(row); track candidate.id) {
+    <label class="option">
+      <input
+        type="radio"
+        [name]="'pick-' + n"
+        [checked]="store.choices()[row.rowKey] === candidate.id"
+        (change)="choose(row.rowKey, candidate.id)"
+      />
+      <span>
+        @if (candidate.entry; as entry) { {{ entryLabel(entry) }} · {{ formatDay(entry.date) }} · {{
+        methodLabels[entry.method] }} ·
+        <ui-money [amount]="entry.amountPaise" tone="neutral" />
+        } @else { An entry you added (details unavailable) }
+      </span>
+    </label>
+    }
+    <label class="option">
+      <input
+        type="radio"
+        [name]="'pick-' + n"
+        [checked]="store.choices()[row.rowKey] === 'new'"
+        (change)="choose(row.rowKey, 'new')"
+      />
+      <span>None of these: it is a separate payment</span>
+    </label>
+    @if (store.conflicts().has(row.rowKey)) {
+    <p class="problem" role="alert">
+      That entry is also chosen for another row. Pick different entries so each is used once.
+    </p>
+    }
+  </fieldset>
+  }
+</section>
+} @if (plan.merges.length > 0) {
+<details class="list">
+  <summary>
+    Complete {{ plural(plan.merges.length, 'entry you added', 'entries you added') }}
+  </summary>
+  <ul class="lines">
+    @for (merge of plan.merges; track merge.rowKey) {
+    <li>
+      <span>
+        {{ merge.counterparty }}
+        <span class="muted note">
+          {{ formatDay(merge.date) }} @if (store.entry(merge.pendingId); as entry) { · matches "{{
+          entryLabel(entry) }}" }
+        </span>
+      </span>
+      <ui-money [amount]="merge.amountPaise" />
+    </li>
+    }
+  </ul>
+</details>
+} @if (plan.toInsert.length > 0) {
+<details class="list">
+  <summary>{{ plural(plan.toInsert.length, 'new transaction') }}</summary>
+  <ul class="lines">
+    @for (row of plan.toInsert; track row.rowKey) {
+    <li>
+      <span>
+        {{ row.counterparty }}
+        <span class="muted note">{{ formatDay(row.date) }}</span>
+      </span>
+      <ui-money [amount]="row.amountPaise" />
+    </li>
+    }
+  </ul>
+</details>
+} @if (store.importCount() === 0 && plan.issues.length === 0) {
+<ui-state-message
+  kind="empty"
+  title="Nothing new to import"
+  [description]="
+            plan.ambiguous.length > 0
+              ? 'Decide the rows above to import them.'
+              : 'Every row in this file is already in your ledger.'
+          "
+/>
+}
+
+<div class="actions">
+  <button
+    ui-button
+    variant="primary"
+    type="button"
+    [disabled]="!store.canConfirm()"
+    (click)="confirm()"
+  >
+    {{ store.busy() === 'confirming' ? 'Importing…' : 'Import ' + plural(store.importCount(),
+    'transaction') }}
+  </button>
+  <button ui-button variant="ghost" type="button" (click)="store.chooseAnother()">
+    Choose a different file
+  </button>
+</div>
+@if (store.undecided() > 0 && store.importCount() > 0) {
+<p class="muted" role="status">
+  {{ plural(store.undecided(), 'row') }} still undecided will not be imported this time.
+</p>
+} } } @case ('done') { @if (store.outcome(); as outcome) {
+<ui-card class="done">
+  <h2>
+    {{ outcome.inserted + outcome.merged === 0 ? 'Nothing was imported' : 'Imported ' +
+    plural(outcome.inserted + outcome.merged, 'transaction') }}
+  </h2>
+  <ul class="lines">
+    <li><span>New transactions</span><strong>{{ outcome.inserted }}</strong></li>
+    <li><span>Entries you added, now completed</span><strong>{{ outcome.merged }}</strong></li>
+    <li><span>Already imported, skipped</span><strong>{{ outcome.duplicates }}</strong></li>
+    @if (outcome.held > 0) {
+    <li><span>Left out, still undecided</span><strong>{{ outcome.held }}</strong></li>
+    }
+  </ul>
+  <div class="actions">
+    <a class="link-button" routerLink="/transactions">See transactions</a>
+    <button ui-button variant="secondary" type="button" (click)="store.chooseAnother()">
+      Import another file
+    </button>
+  </div>
+</ui-card>
+} } }
