@@ -1,0 +1,25 @@
+#!/bin/sh
+# Ledger pre-commit guard. Enabled by `pnpm install` (root "prepare" script sets core.hooksPath).
+# 1. Blocks statement-like files outside fixtures/ and .env files (real financial data, secrets).
+# 2. Runs gitleaks on staged changes when installed; CI always runs it.
+set -eu
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+data=$(printf '%s\n' "$staged" | grep -Ei '\.(csv|pdf|xlsx?|ofx|qif|dump|backup)$' | grep -v '^fixtures/' || true)
+envs=$(printf '%s\n' "$staged" | grep -E '(^|/)\.env(\..*)?$' | grep -v '\.env\.example$' || true)
+
+if [ -n "$data$envs" ]; then
+  echo "pre-commit: blocked. These look like real data or secrets:" >&2
+  printf '  %s\n' $data $envs >&2
+  echo "Only generated fake files under fixtures/ may be committed." >&2
+  exit 1
+fi
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --no-banner --config .gitleaks.toml
+else
+  echo "pre-commit: warning: gitleaks not installed, skipping local secret scan (CI still scans)." >&2
+  echo "  Install: winget install Gitleaks.Gitleaks" >&2
+fi

@@ -1,0 +1,36 @@
+# --- dependencies and build output ---
+node_modules/
+dist/
+coverage/
+.angular/
+*.tsbuildinfo
+
+# --- secrets and environment ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# --- real financial data: never commit (fixtures are generated fakes) ---
+/data/
+*.csv
+*.pdf
+*.xls
+*.xlsx
+*.ofx
+*.qif
+*.dump
+*.backup
+*.age
+!fixtures/**/*.csv
+!fixtures/**/*.pdf
+
+# --- OS / editor / logs ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log

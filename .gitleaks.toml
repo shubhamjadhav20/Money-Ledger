@@ -1,0 +1,8 @@
+# gitleaks config: default rules plus project-specific ones.
+# Runs in the pre-commit hook (.githooks/pre-commit) and in CI (.github/workflows/ci.yml).
+title = "ledger"
+
+[extend]
+useDefault = true
+
+# TODO(M4): add a rule for Ledger's own scoped API token format once it is defined.
