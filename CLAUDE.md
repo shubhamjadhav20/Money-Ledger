@@ -36,9 +36,11 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 
 **M4b-2a done (branch `feat/m4b-server`, stacked on M4b-1):** `pg` driver (`db/pg-client.ts`), `loadConfig`, `startServer`, `bin/serve.ts`, `bin/admin.ts` (`create-token`, `list-tokens`, `add-account`, `list-accounts`). Smoke-tested against a real Postgres 16. Run steps are in `docs/HOW-IT-WORKS.md` section 9. CI now has a Postgres service container.
 
-**Next: M4b-2b.** Tables and routes for pots, payday, scheduled items, then `GET /free`, `/forecast`, `/simulate`, `/reconcile`, `PATCH /transactions/:id`. After that M5 (Angular). Ask before adding each dependency.
+**M4b-2b done (branch `feat/m4b-pots-free`, stacked on M4b-2a):** migration `003_planning` (settings, pots + append-only `pot_movements`, payday rules/runs, scheduled items, balance checkpoints), `planning-service.ts` (`computeFree` and friends), `planning-routes.ts` (`/settings`, `/pots`, `/payday/*`, `/scheduled`, `/balances`, `/free`), shared `http-support.ts`. 400 tests.
 
-**Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
+**Next: M4b-2c.** `GET /forecast`, `POST /simulate`, `GET /reconcile`, `PATCH /transactions/:id`. After that M5 (Angular). Ask before adding each dependency.
+
+**Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `planning-service` `planning-routes` `http-support` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
 
 **Decisions:** PLAN.md section 15 (decision log) is the source of truth; read it before changing domain behaviour.
 
@@ -46,3 +48,4 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 - Upgrade Node to `>=24.15` before M5 (Angular 22).
 - Install gitleaks locally (`winget install Gitleaks.Gitleaks`); until then the pre-commit hook only warns (CI still scans).
 - Verify Slice in 3 minimum amount and fees in the app (`SLICE_IN_3` in `simulate.ts` is a TODO).
+- Confirm payday day, whether payday shifts on weekends, and each card's statement day and due day (placeholders until then).

@@ -112,7 +112,7 @@ length-capped, control characters are stripped from the memo, and the parser nev
 
 ## 6. The database (`packages/api/src/db`)
 
-Three tables, defined in `migrations.ts` and typed in `schema.ts`:
+Twelve tables, defined in `migrations.ts` and typed in `schema.ts`. The ledger itself is three of them (the API-token and audit-log tables are described under the security model):
 
 - `accounts`: bank, card, savings or cash; cards carry statement day and due day.
 - `import_batches`: one row per import that changed something (source, row count, file hash).
@@ -126,6 +126,23 @@ The database enforces the rules too, so a bug in code cannot corrupt the ledger:
 - `posted` if and only if `identity` is set;
 - imported rows are always posted; cash is always pending;
 - `unique (account_id, identity)`: the same statement row cannot exist twice.
+
+Then the planning tables (migration `003_planning`), which feed the free-to-spend number:
+
+- `settings`: exactly one row: payday day (default 7, a placeholder until you confirm), what to
+  do when payday falls on a weekend (default: the previous weekday), and how card bills count
+  (`all_outstanding` or `due_before_payday`).
+- `pots`: named reserves. Kinds: `buffer` (safety money), `bill` (set aside for a bill; may have a
+  due date or cover a card) and `spend`. A pot never stores its balance.
+- `pot_movements`: the pot journal. Every deposit or withdrawal is one row; a pot's balance is the
+  sum of its rows. The journal is append-only (the database refuses UPDATE, DELETE and TRUNCATE),
+  so history cannot be rewritten; a mistake is fixed by adding a correcting row.
+- `payday_runs` and `payday_rules`: the ordered list of "fixed / percent / remainder" splits and
+  the record of each time one was applied. The run id is the idempotency key.
+- `scheduled_items`: money that will leave on a known date, once or monthly (rent, recharge).
+- `balance_checkpoints`: "this account held this much on this date", stated by you (cards:
+  negative when money is owed). Today's balance is the latest checkpoint plus the transactions
+  dated after it. This avoids pretending we can know balances from partial statements.
 
 **Drivers.** `bigint` comes back as a safe JS number (an error if it ever would not fit) and
 `date` as plain `YYYY-MM-DD` text. **Tests** run on PGlite, which is real Postgres compiled to
@@ -144,12 +161,25 @@ adding a third-party package.
   written only if something changed; any failure rolls back everything, including merges.
   Held rows stay unwritten, so importing the same file again after you decide re-presents them.
   `choices` maps a held row to a pending entry id, or `"new"`.
+- `planning-service.ts`: everything behind pots, payday, scheduled items and balances.
+  `computeFree(db, today)` is the headline number. It gathers the pieces below, hands them to the
+  pure `freeToSpend` in core, and returns the number with every line that went into it:
+  1. balances now (checkpoint plus later transactions; cash entries count even while pending);
+  2. minus what you owe on cards (either everything, or only what falls due before payday);
+  3. minus buffer and bill-pot reserves;
+  4. minus pending bank entries not yet on a statement (and dated after your last checkpoint,
+     so nothing is counted twice);
+  5. minus scheduled outflows between today and the next payday.
+  If any account has no checkpoint it refuses with the list of missing ones instead of guessing,
+  and it warns when a checkpoint is more than 7 days old.
+  Applying a payday is idempotent: the same run id with the same values is a no-op that returns
+  the original result, the same id with different values is refused.
 
 ## 8. The HTTP API (`packages/api/src/app.ts`)
 
-Express 5 with zod validation. `createApp({ db, newId, ... })` returns the app; nothing listens on
-a port until the server entrypoint is written (next slice), and tests start it on a random port
-and call it with `fetch`.
+Express 5 with zod validation. `createApp({ db, newId, ... })` returns the app; tests start it on a
+random port and call it with `fetch`. Planning routes live in `planning-routes.ts`, shared request
+helpers in `http-support.ts`.
 
 | Route | Scope | What it does |
 |---|---|---|
@@ -160,6 +190,15 @@ and call it with `fetch`.
 | `GET /transactions` | read | filters: `from to category q status limit` |
 | `GET /summary?month=YYYY-MM` | read | `monthlySummary` over that month, with reconcile bundles |
 | `GET/POST /tokens`, `DELETE /tokens/:id` | full | list, create (secret shown once), revoke |
+| `GET /settings` (read), `PATCH /settings` (full) | | payday day, weekend rule, card exposure mode |
+| `GET /pots` (read), `POST /pots`, `PATCH /pots/:id` (full) | | pots with derived balances |
+| `GET /pots/:id/movements` (read), `POST /pots/:id/movements` (full) | | the pot journal; manual, spend and true-up entries |
+| `GET /payday/rules` (read), `PUT /payday/rules` (full) | | the ordered payday split, replaced as a whole |
+| `POST /payday/preview` | read | what a given amount would split into; writes nothing |
+| `POST /payday/apply` | full | `{ runId, amountPaise, date? }`: journals the split; repeating the same run is safe |
+| `GET /scheduled` (read), `POST /scheduled`, `DELETE /scheduled/:id` (full) | | one-off or monthly outflows |
+| `GET /balances` (read), `POST /balances` (full) | | record "this account holds X today" (never a future date) |
+| `GET /free` | read | the free-to-spend number with its lines, balances and warnings; 409 listing missing balances |
 
 **Import is stateless.** The client sends the same CSV to preview and to confirm (confirm also
 carries your `choices` for ambiguous rows). The server recomputes the plan inside the commit
@@ -221,7 +260,7 @@ generated; real statements are never committed (the repository is public, and gi
 
 ## 11. Not built yet
 
-- M4b-2b: pots, payday, `GET /free`, `/forecast`, `/simulate`, reconcile routes, `PATCH /transactions/:id` (needs new tables for pots and scheduled items).
+- M4b-2c: `GET /forecast`, `POST /simulate` ("can I afford X on Slice in 3?"), `GET /reconcile`, `PATCH /transactions/:id` (fix a category or kind).
 - Web login (argon2id, cookie session, CSRF) arrives with the Angular app.
 - M5: Angular app (dashboard, import with the ambiguity picker, reconcile, pots, PWA quick-add).
 - M6: local MCP server so Claude can answer "can I buy this on Slice in 3?" from your real numbers.
@@ -235,5 +274,10 @@ generated; real statements are never committed (the repository is public, and gi
 - PGlite for tests: real Postgres semantics without Docker, so tests run anywhere.
 - Strict matching by default (exact amount): a wrong merge hides a payment. Allow a small fee
   tolerance per account later if a bank really adds fees.
+- Balances come from checkpoints you state, not from guessing: a bank statement shows a running
+  balance only for the rows it contains, so the app asks for "what does your bank app say today?"
+  and counts forward from there.
+- Pot balances are derived from an append-only journal, never stored, for the same reason the
+  ledger is append-friendly: there is no number to drift out of sync with its history.
 - Tokens over a shared secret header: each client gets its own scope, can be revoked alone, and leaves an audit trail.
 - No hosted AI in v1: Claude reads through MCP on your machine; the numbers come from core.
