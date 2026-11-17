@@ -1,0 +1,158 @@
+<header class="intro">
+  <h1>Component gallery</h1>
+  <p>
+    Everything a screen is built from, in one place. Sample data is made up. Use the theme switch to
+    check both themes.
+  </p>
+  <div class="row" role="group" aria-label="Theme">
+    @for (choice of themes; track choice) {
+    <button
+      ui-chip
+      type="button"
+      [selected]="theme.choice() === choice"
+      (click)="theme.set(choice)"
+    >
+      {{ choice }}
+    </button>
+    }
+  </div>
+</header>
+
+<section aria-labelledby="g-colour">
+  <h2 id="g-colour">Colour</h2>
+  <ul class="swatches">
+    @for (name of swatches; track name) {
+    <li>
+      <span class="swatch" [style.background]="'var(--color-' + name + ')'"></span>
+      <code>--color-{{ name }}</code>
+    </li>
+    }
+  </ul>
+</section>
+
+<section aria-labelledby="g-type">
+  <h2 id="g-type">Type and money</h2>
+  <div class="stack">
+    <p class="scale-xl">Heading, 1.75rem</p>
+    <p>Body text, 1rem. The quick brown fox jumps over the lazy dog.</p>
+    <p class="muted small">Secondary text, 0.875rem, muted colour.</p>
+  </div>
+  <ul class="money-list">
+    <li>
+      <ui-money [amount]="samples.big" size="lg" tone="neutral" />
+      <span class="muted small">Indian grouping</span>
+    </li>
+    <li><ui-money [amount]="samples.small" /> <span class="muted small">five paise</span></li>
+    <li><ui-money [amount]="samples.owed" /> <span class="muted small">owed on a card</span></li>
+    <li>
+      <ui-money [amount]="samples.refund" [showPlus]="true" />
+      <span class="muted small">refund</span>
+    </li>
+    <li>
+      <ui-money [amount]="samples.zero" /> <span class="muted small">zero is never coloured</span>
+    </li>
+  </ul>
+</section>
+
+<section aria-labelledby="g-buttons">
+  <h2 id="g-buttons">Buttons and chips</h2>
+  <div class="row">
+    <button ui-button variant="primary" type="button">Confirm import</button>
+    <button ui-button variant="secondary" type="button">Preview</button>
+    <button ui-button variant="ghost" type="button">Cancel</button>
+    <button ui-button variant="danger" type="button">Revoke token</button>
+    <button ui-button variant="primary" type="button" disabled>Disabled</button>
+  </div>
+  <div class="stack">
+    <div class="row" role="group" aria-label="Category">
+      @for (item of categories; track item) {
+      <button ui-chip type="button" [selected]="category() === item" (click)="category.set(item)">
+        {{ item }}
+      </button>
+      }
+    </div>
+    <div class="row" role="group" aria-label="Method">
+      @for (item of methods; track item) {
+      <button ui-chip type="button" [selected]="method() === item" (click)="method.set(item)">
+        {{ item }}
+      </button>
+      }
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="g-cards">
+  <h2 id="g-cards">Cards</h2>
+  <div class="cards">
+    <ui-card>
+      <p class="muted small">Free to spend until payday</p>
+      <ui-money [amount]="freeToSpend" size="display" />
+      <p class="muted small">{{ daysToPayday }} days to payday</p>
+    </ui-card>
+    <ui-card>
+      <p class="muted small">Buffer pot</p>
+      <ui-money [amount]="potBalance" size="lg" tone="neutral" />
+      <p class="muted small">of <ui-money [amount]="potTarget" tone="neutral" /> target</p>
+      <meter min="0" [max]="potTarget" [value]="potBalance" aria-label="Buffer pot funded">
+        100%
+      </meter>
+    </ui-card>
+  </div>
+</section>
+
+<section aria-labelledby="g-table">
+  <h2 id="g-table">Table</h2>
+  <div class="table-wrap">
+    <table>
+      <caption class="visually-hidden">
+        Recent transactions (sample)
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Date</th>
+          <th scope="col">Counterparty</th>
+          <th scope="col" class="status">Status</th>
+          <th scope="col" class="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows; track row.id) {
+        <tr>
+          <td class="date">{{ row.date }}</td>
+          <td>
+            {{ row.who }}
+            <ui-badge class="status-inline" [tone]="badgeTone(row.status)"
+              >{{ row.status }}</ui-badge
+            >
+          </td>
+          <td class="status">
+            <ui-badge [tone]="badgeTone(row.status)">{{ row.status }}</ui-badge>
+          </td>
+          <td class="num"><ui-money [amount]="row.amount" [showPlus]="true" /></td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="g-states">
+  <h2 id="g-states">Empty, loading, error</h2>
+  <div class="cards">
+    <ui-state-message
+      kind="empty"
+      title="Nothing to review"
+      description="No refunds or splits need a decision right now."
+    >
+      <button ui-button variant="secondary" type="button">Import a statement</button>
+    </ui-state-message>
+    <ui-state-message kind="loading" title="Loading transactions" />
+    <ui-state-message
+      kind="error"
+      title="Could not reach the server"
+      description="Check that the API is running and your token is still valid."
+    >
+      <button ui-button variant="primary" type="button">Try again</button>
+    </ui-state-message>
+  </div>
+</section>

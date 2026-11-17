@@ -1,0 +1,155 @@
+:host {
+  display: grid;
+  gap: var(--space-7);
+}
+
+section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+h1 {
+  font-size: var(--text-xl);
+}
+
+h2 {
+  font-size: var(--text-lg);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.intro {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.small {
+  font-size: var(--text-sm);
+}
+
+.scale-xl {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.swatches li {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+}
+
+.swatch {
+  height: 3rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+}
+
+.money-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.money-list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-4);
+}
+
+meter {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+th,
+td {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+th {
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+  background: var(--color-surface-1);
+}
+
+.num {
+  text-align: right;
+}
+
+td.date {
+  white-space: nowrap;
+}
+
+.status-inline {
+  display: none;
+}
+
+/*
+ * Phone width: the status column folds into the counterparty cell and cells get tighter, so the
+ * amount column always stays on screen. The wrapper still scrolls as a fallback.
+ */
+@media (max-width: 40rem) {
+  th,
+  td {
+    padding: var(--space-3) var(--space-2);
+  }
+  th.status,
+  td.status {
+    display: none;
+  }
+  .status-inline {
+    display: block;
+    width: fit-content;
+    margin-top: var(--space-1);
+  }
+}

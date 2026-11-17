@@ -21,7 +21,7 @@ See PLAN.md for scope, domain rules and milestones.
 - pnpm runs through corepack; version pinned in `packageManager`. A `pnpm` shim is installed in `%APPDATA%\npm` (on PATH), so plain `pnpm` works.
 - TypeScript is pinned to 6.0.x: typescript-eslint supports `<6.1` and Angular 22 requires `>=6.0 <6.1`. Do not move to TS 7 until both support it.
 - Internal packages have no build step: `exports` point at `src/*.ts`, relative imports use `.ts` extensions, and Node 24 runs them via type stripping. Only erasable TS syntax (`erasableSyntaxOnly`): no enums, namespaces or parameter properties.
-- Angular 22 requires Node `>=24.15`; upgrade Node before M5.
+- Angular 22 requires Node `>=24.15` (now enforced in `engines`); your own machine needs that Node to run the web app.
 - MCP SDK: `@modelcontextprotocol/sdk` (v1) and `@modelcontextprotocol/server` (v2) both exist; choose in M6.
 
 ## Where we are (updated 2026-11-17, keep this current at the end of each milestone)
@@ -40,7 +40,9 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 
 **M4b-2c done (branch `feat/m4b-analysis-routes`, stacked on M4b-2b):** `analysis-service.ts` + `analysis-routes.ts` (`GET /forecast`, `POST /simulate` (read scope, no writes), `GET /reconcile`, `PATCH /transactions/:id` for category/kind only), `transaction-view.ts`, shared `RouteContext` in `http-support.ts`, shared HTTP test harness `test-harness.ts`. M4 is complete.
 
-**Next: M5 (Angular app).** Design tokens + component gallery first, then Dashboard, Import, Transactions, Reconcile, Pots, quick-add. Ask before adding each dependency (Angular itself, and Angular CDK/Material only if wanted).
+**M5a done (branch `feat/m5-web-foundation`, stacked on M4b-2c):** `packages/web` is an Angular 22 app (zoneless, standalone, signals, OnPush, plain CSS): `styles/tokens.css` (dark first, light via OS or choice, contrast tested), `styles/base.css`, `app/ui/*` (`ui-money`, `ui-card`, `ui-badge`, `ui-state-message`, `button[ui-button]`, `button[ui-chip]`), `ThemeService`, and `/gallery`. 64 web tests (`pnpm test:web`, part of `pnpm check` and CI). Node `>=24.15` is now enforced by `engines`.
+
+**Next: M5b.** An API client (token kept in memory, never in the URL; read scope for the dashboard) and the Dashboard ("free to spend until payday", pots, forecast line, upcoming dues), then Transactions, Import, Reconcile, Pots, quick-add. Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
 
 **Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `planning-service` `planning-routes` `analysis-service` `analysis-routes` `transaction-view` `http-support` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
 

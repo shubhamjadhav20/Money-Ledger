@@ -21,7 +21,7 @@ const NODE_IO_MODULES = [
 ];
 
 export default defineConfig([
-  globalIgnores(['**/node_modules/', '**/dist/', '**/coverage/', 'packages/web/']),
+  globalIgnores(['**/node_modules/', '**/dist/', '**/coverage/', '**/.angular/']),
 
   {
     files: ['**/*.js'],
@@ -46,6 +46,23 @@ export default defineConfig([
       '@typescript-eslint/consistent-type-imports': 'error',
       // MCP uses stdio: stray stdout corrupts the protocol. Use a logger that writes to stderr.
       'no-console': 'error',
+    },
+  },
+
+  // The Angular app has two TypeScript programs (app and specs), so the type-aware rules read them
+  // explicitly instead of through the project service.
+  {
+    files: ['packages/web/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: ['packages/web/tsconfig.app.json', 'packages/web/tsconfig.spec.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      // Angular components and directives are classes whose behaviour lives in their decorator.
+      '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
     },
   },
 
