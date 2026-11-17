@@ -217,8 +217,8 @@ Verify the SDK's current registration API (`registerTool` vs older `tool`) and p
 - [x] Categoriser rules + transfer detection.
 
 **M2 — Reconcile (days 3-4)**
-- [ ] Golden test (net +₹5) passes.
-- [ ] Edge cases: tolerance (abs and %), date window, multiple candidates (ambiguous never auto-settled), no match, different counterparties.
+- [x] Golden test (net +₹5) passes.
+- [x] Edge cases: tolerance (abs and %), date window, multiple candidates (ambiguous never auto-settled), no match, different counterparties.
 
 **M3 — Pots, payday, cycle, free-to-spend, forecast, simulate (days 5-6)**
 - [ ] All pure functions with table-driven tests; free-to-spend spec finalised.
@@ -324,6 +324,7 @@ Go/no-go first: re-read Anthropic's current terms. Only build `ClaudeCodeRunner`
 
 ## 15. Decision log
 
+- 2026-11-17 (M2): reconcile links debit/credit by window + tolerance only; connected groups with exactly one complete pairing split into pair bundles, groups with several (interchangeable) pairings become one bundle, groups with none (or too large) go to review. A bundle auto-settles only if every pair has similar counterparties, otherwise it is `open` (golden case is open, net +₹5). Output: `bundles`, `unmatched` (review queue: ambiguous only), `singles` (no candidate). Transfers are excluded. Whether `open` bundles count as netted in free-to-spend is decided in M3.
 - 2026-11-16: Postgres instead of MongoDB (relational integrity, constraints, real transactions).
 - 2026-11-16: v1 includes the deterministic Telegram bot, built last (after local MCP and the public demo). SMS forwarding, hosted agent and hardening are v2.
 - 2026-11-16: Hosted Claude is out of v1; `ApiRunner` first, `ClaudeCodeRunner` only if terms clearly allow.

@@ -5,6 +5,7 @@ import {
   DEMO_MAPPINGS,
   createCsvImporter,
   planImport,
+  reconcile,
   sumPaise,
 } from '../../packages/core/src/index.ts';
 import type { RawRow } from '../../packages/core/src/index.ts';
@@ -68,6 +69,17 @@ describe('generated fixtures', () => {
       -724_600, -724_600, -720_000, 719_700, 725_000, 725_000,
     ]);
     expect(sumPaise(golden.map((r) => r.amount))).toBe(500);
+  });
+
+  it('reconciling the whole savings statement bundles only the golden rows (+₹5)', () => {
+    const txs = savings.map((r) => ({ ...r, id: `L${String(r.line)}`, accountId: 'savings' }));
+    const { bundles, unmatched } = reconcile(txs);
+    const bundled = bundles.flatMap((b) => b.txIds);
+    const golden = txs.filter((t) => t.counterparty.includes('TICKETS')).map((t) => t.id);
+
+    expect(unmatched).toEqual([]);
+    expect([...bundled].sort()).toEqual([...golden].sort());
+    expect(sumPaise(bundles.map((b) => b.netPaise))).toBe(500);
   });
 
   it('uses only clearly fake names', () => {
