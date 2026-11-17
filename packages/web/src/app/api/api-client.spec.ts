@@ -10,6 +10,7 @@ import {
   IMPORT_OUTCOME_JSON,
   IMPORT_PLAN_JSON,
   MISSING_JSON,
+  MOVEMENTS_JSON,
   POTS_JSON,
   SCHEDULED_JSON,
   SUMMARY_JSON,
@@ -240,6 +241,61 @@ describe('ApiClient', () => {
       expect(request.request.url).toBe('/api/transactions/a%2Fb%3Fc');
       request.flush({ error: 'x' }, { status: 404, statusText: 'Not Found' });
       expect((await failure(result)).status).toBe(404);
+    });
+  });
+
+  describe('pots', () => {
+    it('creates a pot with a POST and returns its id', async () => {
+      const result = api.createPot({ name: 'Rent', kind: 'bill', targetPaise: paise(2_200_000) });
+      const request = backend.expectOne('/api/pots');
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual({ name: 'Rent', kind: 'bill', targetPaise: 2_200_000 });
+      request.flush({ id: 'pot-9' }, { status: 201, statusText: 'Created' });
+      expect(await result).toBe('pot-9');
+    });
+
+    it('changes a pot with a PATCH and decodes the pot as it is now', async () => {
+      const result = api.updatePot('pot-rent', { targetPaise: null });
+      const request = backend.expectOne('/api/pots/pot-rent');
+      expect(request.request.method).toBe('PATCH');
+      expect(request.request.body).toEqual({ targetPaise: null });
+      request.flush(must(POTS_JSON.items[1]));
+      expect((await result).name).toBe('Rent');
+    });
+
+    it('reads a pot journal and adds to it without sending a date', async () => {
+      const journal = api.potMovements('pot-buffer');
+      backend.expectOne('/api/pots/pot-buffer/movements').flush(MOVEMENTS_JSON);
+      expect((await journal).map((m) => m.amountPaise)).toEqual([300_000, -100_000]);
+
+      const added = api.addPotMovement('pot-buffer', {
+        amountPaise: paise(-5_000),
+        reason: 'spend',
+      });
+      const request = backend.expectOne('/api/pots/pot-buffer/movements');
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual({ amountPaise: -5_000, reason: 'spend' });
+      request.flush({ id: 'm-3' }, { status: 201, statusText: 'Created' });
+      await added;
+    });
+
+    it('keeps an odd pot id from changing the URL', async () => {
+      const result = api.potMovements('a/b?c');
+      backend.expectOne('/api/pots/a%2Fb%3Fc/movements').flush({ items: [] });
+      expect(await result).toEqual([]);
+    });
+
+    it('says when a read-only token tries to change a pot', async () => {
+      const result = failure(api.createPot({ name: 'x', kind: 'buffer' }));
+      backend
+        .expectOne('/api/pots')
+        .flush(
+          { error: { code: 'forbidden', message: 'This token cannot do that' } },
+          { status: 403, statusText: 'Forbidden' },
+        );
+      const error = await result;
+      expect(error.status).toBe(403);
+      expect(auth.connected()).toBe(true);
     });
   });
 

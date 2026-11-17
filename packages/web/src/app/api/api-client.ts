@@ -10,6 +10,9 @@ import {
   decodeImportOutcome,
   decodeImportPlan,
   decodeMissing,
+  decodeCreatedId,
+  decodePot,
+  decodePotMovements,
   decodePots,
   decodeScheduled,
   decodeSummary,
@@ -23,6 +26,7 @@ import type {
   ImportOutcomeView,
   ImportPlanView,
   MissingAccount,
+  PotMovementView,
   PotView,
   ScheduledView,
   SummaryView,
@@ -51,6 +55,31 @@ export interface TransactionQuery {
   readonly search?: string;
   readonly status?: TxStatus;
   readonly limit: number;
+}
+
+/** A new pot. Only bill pots may have a due date or cover a card. */
+export interface PotInput {
+  readonly name: string;
+  readonly kind: PotView['kind'];
+  readonly targetPaise?: Paise;
+  readonly dueDate?: LocalDate;
+  readonly coversCardAccountId?: string;
+}
+
+/** What may change on a pot. `null` clears the target or the due date. */
+export interface PotChange {
+  readonly name?: string;
+  readonly targetPaise?: Paise | null;
+  readonly dueDate?: LocalDate | null;
+}
+
+/**
+ * Money into (positive) or out of (negative) a pot. The date is left to the server, which uses
+ * today in India, so the page never needs its own clock for this.
+ */
+export interface PotMovementInput {
+  readonly amountPaise: Paise;
+  readonly reason: 'spend' | 'trueup' | 'manual';
 }
 
 /** Only what the API allows to change on an existing transaction. `null` clears the category. */
@@ -143,6 +172,28 @@ export class ApiClient {
 
   pots(): Promise<PotView[]> {
     return this.request('GET', '/pots', decodePots);
+  }
+
+  /** Needs a full-access token. Returns the new pot's id. */
+  createPot(input: PotInput): Promise<string> {
+    return this.request('POST', '/pots', decodeCreatedId, { body: input });
+  }
+
+  /** Needs a full-access token. Returns the pot as it is now. */
+  updatePot(id: string, change: PotChange): Promise<PotView> {
+    return this.request('PATCH', `/pots/${encodeURIComponent(id)}`, decodePot, { body: change });
+  }
+
+  /** A pot's journal, oldest first. */
+  potMovements(id: string): Promise<PotMovementView[]> {
+    return this.request('GET', `/pots/${encodeURIComponent(id)}/movements`, decodePotMovements);
+  }
+
+  /** Needs a full-access token. The journal is append-only: a mistake is fixed by another entry. */
+  async addPotMovement(id: string, input: PotMovementInput): Promise<void> {
+    await this.request('POST', `/pots/${encodeURIComponent(id)}/movements`, decodeCreatedId, {
+      body: input,
+    });
   }
 
   scheduled(): Promise<ScheduledView[]> {

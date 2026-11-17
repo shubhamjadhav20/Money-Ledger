@@ -56,6 +56,19 @@ export interface PotView {
   readonly balancePaise: Paise;
   readonly targetPaise: Paise | null;
   readonly dueDate: LocalDate | null;
+  /** For a card-bill pot: the card it pays. */
+  readonly coversCardAccountId: string | null;
+}
+
+export const MOVEMENT_REASONS = ['payday', 'spend', 'trueup', 'manual'] as const;
+export type MovementReason = (typeof MOVEMENT_REASONS)[number];
+
+/** One line of a pot's journal. Positive puts money in, negative takes it out. */
+export interface PotMovementView {
+  readonly id: string;
+  readonly amountPaise: Paise;
+  readonly reason: MovementReason;
+  readonly date: LocalDate;
 }
 
 export interface ScheduledView {
@@ -67,7 +80,7 @@ export interface ScheduledView {
 }
 
 const ACCOUNT_KINDS = ['bank', 'card', 'savings', 'cash'] as const;
-const POT_KINDS = ['buffer', 'bill', 'spend'] as const;
+export const POT_KINDS = ['buffer', 'bill', 'spend'] as const;
 
 export function decodeAccountBalance(value: unknown): AccountBalanceView {
   const r = record(value, 'balance');
@@ -125,18 +138,38 @@ export function decodeForecast(value: unknown): ForecastView {
   };
 }
 
+export function decodePot(value: unknown): PotView {
+  const p = record(value, 'pot');
+  return {
+    id: text(p['id'], 'pot.id'),
+    name: text(p['name'], 'pot.name'),
+    kind: oneOf(p['kind'], POT_KINDS, 'pot.kind'),
+    balancePaise: money(p['balancePaise'], 'pot.balancePaise'),
+    targetPaise: nullable(p['targetPaise'], (v) => money(v, 'pot.targetPaise')),
+    dueDate: nullable(p['dueDate'], (v) => day(v, 'pot.dueDate')),
+    coversCardAccountId: nullable(p['coversCardAccountId'], (v) =>
+      text(v, 'pot.coversCardAccountId'),
+    ),
+  };
+}
+
 export const decodePots = (value: unknown): PotView[] =>
-  list(record(value, 'pots')['items'], 'pots.items').map((item) => {
-    const p = record(item, 'pot');
+  list(record(value, 'pots')['items'], 'pots.items').map(decodePot);
+
+export const decodePotMovements = (value: unknown): PotMovementView[] =>
+  list(record(value, 'pot movements')['items'], 'pot movements.items').map((item) => {
+    const m = record(item, 'pot movement');
     return {
-      id: text(p['id'], 'pot.id'),
-      name: text(p['name'], 'pot.name'),
-      kind: oneOf(p['kind'], POT_KINDS, 'pot.kind'),
-      balancePaise: money(p['balancePaise'], 'pot.balancePaise'),
-      targetPaise: nullable(p['targetPaise'], (v) => money(v, 'pot.targetPaise')),
-      dueDate: nullable(p['dueDate'], (v) => day(v, 'pot.dueDate')),
+      id: text(m['id'], 'movement.id'),
+      amountPaise: money(m['amountPaise'], 'movement.amountPaise'),
+      reason: oneOf(m['reason'], MOVEMENT_REASONS, 'movement.reason'),
+      date: day(m['date'], 'movement.date'),
     };
   });
+
+/** The `{ id }` the API answers a create with. */
+export const decodeCreatedId = (value: unknown): string =>
+  text(record(value, 'created')['id'], 'id');
 
 export const decodeScheduled = (value: unknown): ScheduledView[] =>
   list(record(value, 'scheduled')['items'], 'scheduled.items').map((item) => {

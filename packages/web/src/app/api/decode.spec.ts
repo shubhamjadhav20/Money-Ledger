@@ -6,6 +6,9 @@ import {
   decodeImportOutcome,
   decodeImportPlan,
   decodeMissing,
+  decodeCreatedId,
+  decodePot,
+  decodePotMovements,
   decodePots,
   decodeScheduled,
   decodeSummary,
@@ -15,10 +18,12 @@ import {
 import {
   BALANCES_JSON,
   FORECAST_JSON,
+  CARD_POT_JSON,
   FREE_JSON,
   IMPORT_OUTCOME_JSON,
   IMPORT_PLAN_JSON,
   MISSING_JSON,
+  MOVEMENTS_JSON,
   POTS_JSON,
   SCHEDULED_JSON,
   SUMMARY_JSON,
@@ -112,6 +117,29 @@ describe('API model decoders', () => {
     expect(monthly?.monthlyDay).toBe(1);
     expect(monthly?.date).toBeNull();
     expect(oneOff?.date).toBe('2026-11-28');
+  });
+
+  describe('pots', () => {
+    it('decodes the card a pot covers, and null when it covers none', () => {
+      expect(decodePot(CARD_POT_JSON).coversCardAccountId).toBe('acc-card');
+      expect(decodePots(POTS_JSON).map((p) => p.coversCardAccountId)).toEqual([null, null]);
+    });
+
+    it('decodes a pot journal with signed amounts', () => {
+      expect(decodePotMovements(MOVEMENTS_JSON)).toEqual([
+        { id: 'm-1', amountPaise: 300_000, reason: 'payday', date: '2026-11-07' },
+        { id: 'm-2', amountPaise: -100_000, reason: 'spend', date: '2026-11-12' },
+      ]);
+    });
+
+    it('fails by field name on a bad movement or a bad created id', () => {
+      const bad = (change: object) => ({ items: [{ ...MOVEMENTS_JSON.items[0], ...change }] });
+      expect(() => decodePotMovements(bad({ reason: 'gift' }))).toThrow(/movement\.reason/);
+      expect(() => decodePotMovements(bad({ amountPaise: 1.5 }))).toThrow(/movement\.amountPaise/);
+      expect(() => decodePotMovements(bad({ date: '2026-02-30' }))).toThrow(/movement\.date/);
+      expect(decodeCreatedId({ id: 'pot-9' })).toBe('pot-9');
+      expect(() => decodeCreatedId({})).toThrow(/id/);
+    });
   });
 
   it('decode the accounts that still need a balance', () => {
