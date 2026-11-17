@@ -44,7 +44,7 @@ LLM use cases (nice-to-have): free-form questions and messy-entry parsing. In v1
 |---|---|
 | Monorepo | pnpm workspaces (or npm workspaces) |
 | Web | Latest stable Angular, standalone, Signals, OnPush, SCSS, ECharts (tree-shaken `echarts/core`), PWA service worker |
-| API | Node 22 LTS (verify), Express, TypeScript, zod |
+| API | Node 24 LTS, Express, TypeScript 6.0.x, zod |
 | DB | **PostgreSQL** (`bigint` paise, `date` columns, CHECK/FK constraints). Typed query layer (Kysely or Drizzle) and migration tool chosen in M4; ask first |
 | Core | Pure TypeScript package, zero I/O, 100% unit-tested |
 | MCP | TypeScript MCP SDK, stdio transport. **Verify package and API first:** v1 is `@modelcontextprotocol/sdk`; v2 splits into `@modelcontextprotocol/server` (+ client), reported beta vs stable inconsistently. Run `npm view` before pinning |
@@ -206,9 +206,10 @@ Verify the SDK's current registration API (`registerTool` vs older `tool`) and p
 ### v1
 
 **M0 — Scaffold (day 1)**
-- [ ] `git init`, `.gitignore`, `.gitattributes`, gitleaks first; then workspaces (core, api, tools, mcp, web), strict tsconfig, ESLint, Prettier, Vitest, CI green on an empty test.
-- [ ] `CLAUDE.md` committed (section 12).
-- [ ] Pre-flight verifications (section 14).
+- [x] `git init`, `.gitignore`, `.gitattributes`, gitleaks first; then workspaces (core, api, tools, mcp; web is a placeholder until M5), strict tsconfig, ESLint, Prettier, Vitest.
+- [ ] CI green on GitHub (green locally via `pnpm check`; needs the first push).
+- [x] `CLAUDE.md` committed (section 12).
+- [x] Pre-flight verifications (section 14); results in CLAUDE.md "Toolchain facts".
 
 **M1 — Core money + import (days 2-3)**
 - [ ] `Paise` helpers, money-string parser (no floats), formatter, tests.
@@ -326,4 +327,7 @@ Go/no-go first: re-read Anthropic's current terms. Only build `ClaudeCodeRunner`
 - 2026-11-16: Postgres instead of MongoDB (relational integrity, constraints, real transactions).
 - 2026-11-16: v1 includes the deterministic Telegram bot, built last (after local MCP and the public demo). SMS forwarding, hosted agent and hardening are v2.
 - 2026-11-16: Hosted Claude is out of v1; `ApiRunner` first, `ClaudeCodeRunner` only if terms clearly allow.
+- 2026-11-17 (M0): TypeScript pinned to 6.0.x (typescript-eslint `<6.1`, Angular 22 `>=6.0 <6.1`); Node 24; pnpm 12 via corepack with supply-chain settings in `pnpm-workspace.yaml`.
+- 2026-11-17 (M0): internal packages have no build step; `exports` point at `src/*.ts` and Node 24 runs them via type stripping (erasable syntax only).
+- 2026-11-17 (M0): Angular generation moved to M5 because Angular 22.2 needs Node `>=24.15` (machine has 24.12).
 - 2026-11-16: Review amendments applied: date-only dates, hash + occurrence index, transfers, counterparty-as-score reconcile, merge-in-place matching, derived pot balances, free-to-spend spec, scoped tokens, two deployments.
