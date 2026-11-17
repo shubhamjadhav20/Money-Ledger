@@ -1,0 +1,41 @@
+<form (submit)="$event.preventDefault(); submit()" novalidate>
+  <div class="field">
+    <label [for]="'cat-' + tx().id">Category</label>
+    <input
+      class="control"
+      [id]="'cat-' + tx().id"
+      type="text"
+      maxlength="40"
+      autocomplete="off"
+      placeholder="Uncategorised"
+      [attr.list]="'cats-' + tx().id"
+      [value]="category()"
+      (input)="onCategory($event)"
+    />
+    <datalist [id]="'cats-' + tx().id">
+      @for (name of suggestions(); track name) {
+      <option [value]="name"></option>
+      }
+    </datalist>
+  </div>
+  <div class="field">
+    <label [for]="'kind-' + tx().id">Kind</label>
+    <select class="control" [id]="'kind-' + tx().id" (change)="onKind($event)">
+      @for (option of kinds; track option) {
+      <option [value]="option" [selected]="option === kind()">{{ kindLabels[option] }}</option>
+      }
+    </select>
+    <p class="hint">{{ kindHelp() }}</p>
+  </div>
+  @if (failure(); as text) {
+  <p class="problem" role="alert">{{ text }}</p>
+  }
+  <div class="actions">
+    <button ui-button variant="primary" type="submit" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Save' }}
+    </button>
+    <button ui-button variant="ghost" type="button" [disabled]="saving()" (click)="cancel.emit()">
+      Cancel
+    </button>
+  </div>
+</form>

@@ -36,6 +36,10 @@ export function int(value: unknown, what: string): number {
     : bad(what, 'a whole number');
 }
 
+export function flag(value: unknown, what: string): boolean {
+  return typeof value === 'boolean' ? value : bad(what, 'true or false');
+}
+
 export function money(value: unknown, what: string): Paise {
   try {
     return paise(int(value, what));

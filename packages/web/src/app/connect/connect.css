@@ -26,20 +26,6 @@ label {
   font-weight: var(--weight-medium);
 }
 
-input {
-  min-height: var(--tap-target);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-1);
-  color: var(--color-text);
-  font: inherit;
-}
-
-input[aria-invalid='true'] {
-  border-color: var(--color-negative);
-}
-
 .problem {
   color: var(--color-negative);
   font-size: var(--text-sm);

@@ -279,8 +279,8 @@ generated; real statements are never committed (the repository is public, and gi
 
 ## 10b. The web app (`packages/web`)
 
-So far: the look and the parts every screen is built from, plus the first real screens, **Connect**
-and the **Dashboard**.
+So far: the look and the parts every screen is built from, plus three real screens: **Connect**,
+the **Dashboard** and **Transactions**.
 
 - **Design tokens** (`src/styles/tokens.css`): every colour, size, radius and duration lives in
   one file as CSS variables. Dark is the default; light follows your phone's setting or your
@@ -323,10 +323,27 @@ port 3000 (the API deliberately allows no cross-site calls), so run both side by
   you owe as a positive number. Amounts are read as exact rupees and paise, never as decimals.
   Saving needs a full-access token; a read-only token gets a clear message saying so.
 
+**Transactions** (`/transactions`) shows one month at a time:
+- **Month bar**: step back and forward; you cannot go past the current month (India time).
+- **At a glance**: income, spent, invested, family and left over, from the same monthly summary the
+  API computes (every payment counted exactly once). Transfers between your own accounts are
+  mentioned but never counted as spending. Below it, the biggest spending categories.
+- **Search and filters**: search by name or note, filter by Pending / Posted, and by kind. Status
+  and search are answered by the API; kind is applied on the page. The list shows the latest 200
+  rows of the month and says so if there may be more.
+- **Each row** shows the name (counterparty, else your note), date, account, payment method, a
+  Pending/Posted label, the kind, the category and the amount with its sign in the text.
+  Anything from a bank statement is shown as plain text, never as markup.
+- **Edit** changes only the category and the kind, the two things you can legitimately fix after the
+  fact. Amount, date and name come from the bank and are never editable. Only what changed is sent;
+  an emptied category clears it. Category names already in use are offered as suggestions so the
+  spelling stays the same. After a save the month's totals refresh without the list flashing.
+  Saving needs a full-access token; a read-only token gets a clear message.
+
 ## 11. Not built yet
 
 - Web login (argon2id, cookie session, CSRF) arrives with the Angular app.
-- M5, remaining screens: transactions, import with the ambiguity picker, reconcile, pots, PWA quick-add. The API client and the Dashboard are done.
+- M5, remaining screens: import with the ambiguity picker, reconcile, pots, PWA quick-add. The API client, Dashboard and Transactions are done.
 - M6: local MCP server so Claude can answer "can I buy this on Slice in 3?" from your real numbers.
 - M7: public demo with generated data. M8: private deployment and the Telegram bot.
 

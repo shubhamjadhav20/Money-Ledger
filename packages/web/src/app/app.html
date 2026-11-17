@@ -4,6 +4,9 @@
   <nav aria-label="Main">
     @if (auth.connected()) {
     <a routerLink="/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page">Dashboard</a>
+    <a routerLink="/transactions" routerLinkActive="active" ariaCurrentWhenActive="page"
+      >Transactions</a
+    >
     }
     <a routerLink="/gallery" routerLinkActive="active" ariaCurrentWhenActive="page">Gallery</a>
     @if (auth.connected()) {

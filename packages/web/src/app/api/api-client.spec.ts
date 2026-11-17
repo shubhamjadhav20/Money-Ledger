@@ -1,7 +1,7 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { paise } from '@ledger/core';
+import { parseLocalDate, paise } from '@ledger/core';
 import { must } from '../../testing';
 import {
   BALANCES_JSON,
@@ -10,6 +10,8 @@ import {
   MISSING_JSON,
   POTS_JSON,
   SCHEDULED_JSON,
+  SUMMARY_JSON,
+  TRANSACTIONS_JSON,
 } from '../../testing-api';
 import { ApiClient, ApiError } from './api-client';
 import { AuthStore, authInterceptor } from './auth';
@@ -160,5 +162,82 @@ describe('ApiClient', () => {
     const error = await failure(result);
     expect([error.status, error.code]).toEqual([502, 'bad_response']);
     expect(error.message).toContain('pot.balancePaise');
+  });
+
+  describe('transactions', () => {
+    const from = parseLocalDate('2026-11-01', 'yyyy-mm-dd');
+    const to = parseLocalDate('2026-11-30', 'yyyy-mm-dd');
+
+    it('asks for a date range and a limit, newest first as the server sorts them', async () => {
+      const result = api.transactions({ from, to, limit: 200 });
+      const request = backend.expectOne((r) => r.url === '/api/transactions');
+      expect(request.request.method).toBe('GET');
+      expect(request.request.params.get('from')).toBe('2026-11-01');
+      expect(request.request.params.get('to')).toBe('2026-11-30');
+      expect(request.request.params.get('limit')).toBe('200');
+      expect(request.request.params.has('q')).toBe(false);
+      expect(request.request.params.has('status')).toBe(false);
+      request.flush(TRANSACTIONS_JSON);
+      expect(await result).toHaveLength(5);
+    });
+
+    it('adds the search text and status only when they are set', async () => {
+      const result = api.transactions({
+        from,
+        to,
+        limit: 50,
+        search: 'swiggy & co',
+        status: 'posted',
+      });
+      const request = backend.expectOne((r) => r.url === '/api/transactions');
+      expect(request.request.params.get('q')).toBe('swiggy & co');
+      expect(request.request.params.get('status')).toBe('posted');
+      expect(request.request.urlWithParams).toContain('q=swiggy%20%26%20co');
+      request.flush({ items: [] });
+      expect(await result).toEqual([]);
+    });
+
+    it('treats an empty search as no search', async () => {
+      const result = api.transactions({ from, to, limit: 50, search: '' });
+      const request = backend.expectOne((r) => r.url === '/api/transactions');
+      expect(request.request.params.has('q')).toBe(false);
+      request.flush({ items: [] });
+      await result;
+    });
+  });
+
+  it('reads the monthly summary', async () => {
+    const result = api.summary('2026-11');
+    const request = backend.expectOne((r) => r.url === '/api/summary');
+    expect(request.request.params.get('month')).toBe('2026-11');
+    request.flush(SUMMARY_JSON);
+    expect((await result).transferCount).toBe(1);
+  });
+
+  describe('updating a transaction', () => {
+    it('sends only the fields given, with a PATCH, and decodes the saved row', async () => {
+      const result = api.updateTransaction('t-mart', { category: 'Groceries' });
+      const request = backend.expectOne('/api/transactions/t-mart');
+      expect(request.request.method).toBe('PATCH');
+      expect(request.request.body).toEqual({ category: 'Groceries' });
+      request.flush({ ...must(TRANSACTIONS_JSON.items[2]), category: 'Groceries' });
+      expect((await result).category).toBe('Groceries');
+    });
+
+    it('can clear a category with null', async () => {
+      const result = api.updateTransaction('t-swiggy', { category: null, kind: 'family' });
+      const request = backend.expectOne('/api/transactions/t-swiggy');
+      expect(request.request.body).toEqual({ category: null, kind: 'family' });
+      request.flush({ ...must(TRANSACTIONS_JSON.items[1]), category: null, kind: 'family' });
+      expect((await result).kind).toBe('family');
+    });
+
+    it('keeps an odd id from changing the URL', async () => {
+      const result = api.updateTransaction('a/b?c', { kind: 'spend' });
+      const request = backend.expectOne((r) => r.url.startsWith('/api/transactions/'));
+      expect(request.request.url).toBe('/api/transactions/a%2Fb%3Fc');
+      request.flush({ error: 'x' }, { status: 404, statusText: 'Not Found' });
+      expect((await failure(result)).status).toBe(404);
+    });
   });
 });

@@ -44,7 +44,9 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 
 **M5b done (branch `feat/m5b-dashboard`):** typed API client with decoded responses (`web/src/app/api`), in-memory token (`AuthStore`, interceptor adds Bearer to `/api/` only, 401 signs the tab out), `/connect`, route guards, dev proxy (`proxy.conf.json`), and the Dashboard (`/dashboard`: free-to-spend with its lines, forecast, pots, card dues, due-before-payday, starting-balances form). 153 web tests.
 
-**Next: M5c.** Transactions screen, then Import (ambiguity picker), Reconcile, Pots, quick-add (capture-scope token). Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
+**M5c done (branch `feat/m5c-transactions`):** `/transactions`: month bar, month summary, search and status/kind filters, rows with status/kind/category, edit of category and kind (`PATCH`), category suggestions. API client gained `transactions`, `summary`, `updateTransaction`. 216 web tests.
+
+**Next: M5d.** Import (ambiguity picker), then Reconcile, Pots, quick-add (capture-scope token). Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
 
 **Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `planning-service` `planning-routes` `analysis-service` `analysis-routes` `transaction-view` `http-support` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
 

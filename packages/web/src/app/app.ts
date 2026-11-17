@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthStore } from './api/auth';
+import { PROTECTED_PREFIXES } from './guards';
 import { UiButton } from './ui/button';
 
 @Component({
@@ -29,6 +30,6 @@ export class App {
   }
 
   private needsConnection(url: string): boolean {
-    return url.startsWith('/dashboard');
+    return PROTECTED_PREFIXES.some((prefix) => url.startsWith(prefix));
   }
 }
