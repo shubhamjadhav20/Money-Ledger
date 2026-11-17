@@ -1,95 +1,21 @@
-import type { AddressInfo } from 'node:net';
-import type { Server } from 'node:http';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { sql } from 'kysely';
-import type { Kysely } from 'kysely';
-import { createToken } from './auth.ts';
-import type { TokenScope } from './auth.ts';
-import { createApp } from './app.ts';
-import { createTestDb } from './db/client.ts';
-import type { Database } from './db/schema.ts';
+import { items, startHarness } from './test-harness.ts';
+import type { Harness } from './test-harness.ts';
 
-let db: Kysely<Database>;
-let server: Server;
-let base = '';
-let counter = 0;
-const newId = (): string => `r-${String(++counter)}`;
 const NOW = new Date('2026-11-17T10:00:00Z'); // 17 Nov in India
 
-const secrets = {} as Record<TokenScope, string>;
-
+let h: Harness;
 beforeAll(async () => {
-  db = await createTestDb();
-  const app = createApp({ db, newId, now: () => NOW, rateLimits: { capture: 5, default: 1000 } });
-  server = await new Promise<Server>((resolve) => {
-    const s = app.listen(0, '127.0.0.1', () => {
-      resolve(s);
-    });
-  });
-  base = `http://127.0.0.1:${String((server.address() as AddressInfo).port)}`;
+  h = await startHarness(NOW, 'r');
 });
 afterAll(async () => {
-  await new Promise<void>((resolve) => {
-    server.close(() => {
-      resolve();
-    });
-  });
-  await db.destroy();
+  await h.stop();
 });
-
 beforeEach(async () => {
-  // The journal is append-only (triggers), so the reset bypasses triggers for this session only.
-  await sql`set session_replication_role = replica`.execute(db);
-  await sql`truncate accounts, pots, payday_runs, pot_movements, payday_rules, scheduled_items, balance_checkpoints, transactions, import_batches, api_tokens, audit_log cascade`.execute(
-    db,
-  );
-  await sql`set session_replication_role = origin`.execute(db);
-  await db
-    .updateTable('settings')
-    .set({ payday_day: 7, payday_weekend: 'previous-weekday', card_exposure: 'all_outstanding' })
-    .execute();
-  await db
-    .insertInto('accounts')
-    .values([
-      { id: 'bank', name: 'Bank', kind: 'bank', statement_day: null, due_day: null },
-      { id: 'cc', name: 'Slice', kind: 'card', statement_day: 5, due_day: 25 },
-      { id: 'cash', name: 'Cash', kind: 'cash', statement_day: null, due_day: null },
-    ])
-    .execute();
-  for (const scope of ['capture', 'read', 'full'] as const) {
-    secrets[scope] = (await createToken(db, { name: scope, scope }, newId)).secret;
-  }
+  await h.reset();
 });
 
-interface Reply {
-  status: number;
-  body: Record<string, unknown>;
-}
-async function call(
-  method: string,
-  path: string,
-  options: { scope?: TokenScope | 'none'; json?: unknown } = {},
-): Promise<Reply> {
-  const scope = options.scope ?? 'full';
-  const headers: Record<string, string> = {};
-  if (scope !== 'none') headers['authorization'] = `Bearer ${secrets[scope]}`;
-  let body: string | undefined;
-  if (options.json !== undefined) {
-    headers['content-type'] = 'application/json';
-    body = JSON.stringify(options.json);
-  }
-  const response = await fetch(`${base}${path}`, {
-    method,
-    headers,
-    ...(body === undefined ? {} : { body }),
-  });
-  const text = await response.text();
-  return {
-    status: response.status,
-    body: text === '' ? {} : (JSON.parse(text) as Record<string, unknown>),
-  };
-}
-const items = (r: Reply): Record<string, unknown>[] => r.body['items'] as Record<string, unknown>[];
+const call = (...args: Parameters<Harness['call']>) => h.call(...args);
 
 describe('scopes', () => {
   const reads = ['/settings', '/pots', '/payday/rules', '/scheduled', '/balances', '/free'];
@@ -288,7 +214,7 @@ describe('payday', () => {
     await call('POST', '/payday/apply', {
       json: { runId: 'audit-run', amountPaise: 4_870_000, date: '2026-12-07' },
     });
-    const rows = await db
+    const rows = await h.db
       .selectFrom('audit_log')
       .selectAll()
       .where('entity_id', '=', 'audit-run')

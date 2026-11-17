@@ -2,8 +2,14 @@
  * Small helpers shared by every route module: structured errors and strict request parsing.
  * Validation problems report the path and rule only; submitted values are never echoed back.
  */
+import express from 'express';
+import type { RequestHandler, Response } from 'express';
+import type { Kysely } from 'kysely';
 import { z } from 'zod';
 import { parseLocalDate } from '@ledger/core';
+import type { LocalDate } from '@ledger/core';
+import type { RateLimiter, TokenScope } from './auth.ts';
+import type { Database } from './db/schema.ts';
 
 export class HttpError extends Error {
   readonly status: number;
@@ -49,3 +55,26 @@ export const isoDate = z
 
 /** A whole number of paise, as a plain JSON number within the safe-integer range. */
 export const paiseInt = z.number().int().min(-Number.MAX_SAFE_INTEGER).max(Number.MAX_SAFE_INTEGER);
+
+/** What a route module needs from `createApp`. */
+export interface RouteContext {
+  readonly app: express.Express;
+  readonly db: Kysely<Database>;
+  readonly newId: () => string;
+  /** Today's date in India. */
+  readonly today: () => LocalDate;
+  readonly guard: (need: TokenScope, limiter?: RateLimiter) => RequestHandler;
+  readonly actor: (res: Response) => string | null;
+}
+
+/** Small JSON bodies only: every planning and edit route takes well under 10 kB. */
+export const jsonBody = express.json({ limit: '10kb' });
+
+/** 409 telling the caller which accounts still need a stated balance. */
+export const missingBalances = (accounts: readonly { accountId: string; name: string }[]): never =>
+  fail(
+    409,
+    'missing_balances',
+    'Record a current balance for every account first (POST /balances)',
+    accounts,
+  );
