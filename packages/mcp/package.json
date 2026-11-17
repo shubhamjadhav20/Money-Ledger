@@ -1,0 +1,16 @@
+{
+  "name": "@ledger/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local stdio MCP server over @ledger/tools. Never writes to stdout.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ledger/tools": "workspace:*"
+  }
+}

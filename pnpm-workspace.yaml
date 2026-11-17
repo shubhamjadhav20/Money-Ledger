@@ -1,0 +1,14 @@
+packages:
+  - packages/*
+
+# Supply-chain hardening (pnpm 12; https://pnpm.io/settings).
+# Don't install versions younger than 3 days (minutes).
+minimumReleaseAge: 4320
+# Fail if a package's publish trust level drops versus earlier releases.
+trustPolicy: no-downgrade
+# Transitive deps may not come from git URLs or raw tarballs.
+blockExoticSubdeps: true
+# Dependencies may not run install scripts unless listed below after review.
+strictDepBuilds: true
+allowBuilds: {}
+engineStrict: true

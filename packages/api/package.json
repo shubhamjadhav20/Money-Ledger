@@ -1,0 +1,16 @@
+{
+  "name": "@ledger/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Express + Postgres API. The single enforcement point for auth, scopes, audit and rate limits.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ledger/core": "workspace:*"
+  }
+}

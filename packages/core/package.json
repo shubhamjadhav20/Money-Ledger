@@ -1,0 +1,13 @@
+{
+  "name": "@ledger/core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pure domain logic: money, importers, reconcile, pots, payday, forecast, simulate. No I/O.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}
