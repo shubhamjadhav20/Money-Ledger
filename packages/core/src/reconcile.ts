@@ -16,6 +16,7 @@
  */
 import { daysBetween } from './dates.ts';
 import type { LocalDate } from './dates.ts';
+import { isPurchaseFlow } from './domain.ts';
 import type { TxKind } from './domain.ts';
 import { normaliseCounterparty } from './import/identity.ts';
 import { sumPaise } from './money.ts';
@@ -27,7 +28,7 @@ export interface ReconcileTx {
   readonly date: LocalDate;
   readonly amount: Paise;
   readonly counterparty: string;
-  /** Transfers are never reconciled as spend. */
+  /** Transfers, investments and family transfers are never reconciled as spend. */
   readonly kind?: TxKind;
 }
 
@@ -226,7 +227,7 @@ export function reconcile(
   options: ReconcileOptions = DEFAULT_RECONCILE_OPTIONS,
 ): ReconcileResult {
   const txs = [...transactions].sort(byDateThenId);
-  const eligible = txs.filter((t) => t.kind !== 'transfer' && t.amount !== 0);
+  const eligible = txs.filter((t) => isPurchaseFlow(t.kind) && t.amount !== 0);
   const debits = eligible.filter((t) => t.amount < 0);
   const credits = eligible.filter((t) => t.amount > 0);
 
@@ -305,7 +306,7 @@ export function reconcile(
   const bundled = new Set(bundles.flatMap((b) => b.txIds));
   const queued = new Set(unmatched.map((u) => u.txId));
   const singles = txs
-    .filter((t) => t.kind !== 'transfer' && !bundled.has(t.id) && !queued.has(t.id))
+    .filter((t) => isPurchaseFlow(t.kind) && !bundled.has(t.id) && !queued.has(t.id))
     .map((t) => t.id);
 
   bundles.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));

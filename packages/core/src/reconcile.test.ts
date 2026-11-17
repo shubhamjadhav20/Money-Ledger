@@ -1,6 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { localDate } from './dates.ts';
+import { isPurchaseFlow } from './domain.ts';
 import { paise, sumPaise } from './money.ts';
 import { DEFAULT_RECONCILE_OPTIONS, counterpartySimilarity, reconcile } from './reconcile.ts';
 import type { ReconcileOptions, ReconcileTx } from './reconcile.ts';
@@ -89,6 +90,19 @@ describe('reconcile(): pairs and status', () => {
     ]);
     expect(bundles).toEqual([]);
     expect(sorted(singles)).toEqual(['back', 'zero']);
+  });
+});
+
+describe('reconcile(): investments and family transfers', () => {
+  it('never pairs a SIP or a household transfer with a refund-like credit', () => {
+    const { bundles, singles } = reconcile([
+      tx('sip', 10, -25_000, 'MF SIP', { kind: 'investment' }),
+      tx('home', 10, -10_000, 'MUMMY', { kind: 'family' }),
+      tx('credit-a', 10, 25_000, 'SOMEONE'),
+      tx('credit-b', 10, 10_000, 'SOMEONE ELSE'),
+    ]);
+    expect(bundles).toEqual([]);
+    expect(sorted(singles)).toEqual(['credit-a', 'credit-b']);
   });
 });
 
@@ -196,7 +210,7 @@ describe('reconcile(): properties', () => {
         // Few distinct amounts so random sets actually produce links and ambiguity.
         amount: fc.constantFrom(-7250, -7246, -500, -499, 500, 7197, 7250, 0),
         who: fc.constantFrom('SHOP', 'SHOP REFUND', 'FRIEND', 'CAFE'),
-        transfer: fc.boolean(),
+        flow: fc.constantFrom('spend', 'transfer', 'investment', 'family'),
       }),
       { maxLength: 24 },
     )
@@ -207,7 +221,7 @@ describe('reconcile(): properties', () => {
           row.day,
           row.amount,
           row.who,
-          row.transfer && i % 5 === 0 ? { kind: 'transfer' } : {},
+          i % 5 === 0 && row.flow !== 'spend' ? { kind: row.flow } : {},
         ),
       ),
     );
@@ -221,7 +235,7 @@ describe('reconcile(): properties', () => {
           ...unmatched.map((u) => u.txId),
           ...singles,
         ];
-        const expected = txs.filter((t) => t.kind !== 'transfer').map((t) => t.id);
+        const expected = txs.filter((t) => isPurchaseFlow(t.kind)).map((t) => t.id);
         expect(sorted(placed)).toEqual(sorted(expected));
       }),
     );
@@ -235,7 +249,7 @@ describe('reconcile(): properties', () => {
         const leftovers = [...unmatched.map((u) => u.txId), ...singles].map(
           (id) => amountOf.get(id) ?? paise(0),
         );
-        const total = sumPaise(txs.filter((t) => t.kind !== 'transfer').map((t) => t.amount));
+        const total = sumPaise(txs.filter((t) => isPurchaseFlow(t.kind)).map((t) => t.amount));
         expect(sumPaise([...bundles.map((b) => b.netPaise), ...leftovers])).toBe(total);
       }),
     );

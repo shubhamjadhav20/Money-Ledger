@@ -16,6 +16,7 @@ export * from './pots.ts';
 export * from './free-to-spend.ts';
 export * from './forecast.ts';
 export * from './simulate.ts';
+export * from './summary.ts';
 export * from './import/types.ts';
 export * from './import/csv.ts';
 export * from './import/csv-importer.ts';
