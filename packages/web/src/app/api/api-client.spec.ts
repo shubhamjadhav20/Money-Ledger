@@ -12,6 +12,7 @@ import {
   MISSING_JSON,
   MOVEMENTS_JSON,
   POTS_JSON,
+  RECONCILE_JSON,
   SCHEDULED_JSON,
   SUMMARY_JSON,
   TRANSACTIONS_JSON,
@@ -244,6 +245,36 @@ describe('ApiClient', () => {
     });
   });
 
+  it('asks for matches in a date range and decodes them', async () => {
+    const result = api.reconcile(
+      parseLocalDate('2026-11-01', 'yyyy-mm-dd'),
+      parseLocalDate('2026-11-30', 'yyyy-mm-dd'),
+    );
+    const request = backend.expectOne((r) => r.url === '/api/reconcile');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('from')).toBe('2026-11-01');
+    expect(request.request.params.get('to')).toBe('2026-11-30');
+    request.flush(RECONCILE_JSON);
+    expect((await result).bundles).toHaveLength(3);
+  });
+
+  it('reports a range the server refuses', async () => {
+    const result = failure(
+      api.reconcile(
+        parseLocalDate('2026-01-01', 'yyyy-mm-dd'),
+        parseLocalDate('2026-12-31', 'yyyy-mm-dd'),
+      ),
+    );
+    backend
+      .expectOne((r) => r.url === '/api/reconcile')
+      .flush(
+        { code: 'range_too_long', message: 'Ask for at most 180 days at a time' },
+        { status: 422, statusText: 'Unprocessable Entity' },
+      );
+    const error = await result;
+    expect([error.status, error.code]).toEqual([422, 'range_too_long']);
+  });
+
   describe('pots', () => {
     it('creates a pot with a POST and returns its id', async () => {
       const result = api.createPot({ name: 'Rent', kind: 'bill', targetPaise: paise(2_200_000) });
@@ -290,11 +321,11 @@ describe('ApiClient', () => {
       backend
         .expectOne('/api/pots')
         .flush(
-          { error: { code: 'forbidden', message: 'This token cannot do that' } },
+          { code: 'forbidden', message: 'This token cannot do that' },
           { status: 403, statusText: 'Forbidden' },
         );
       const error = await result;
-      expect(error.status).toBe(403);
+      expect([error.status, error.code]).toEqual([403, 'forbidden']);
       expect(auth.connected()).toBe(true);
     });
   });

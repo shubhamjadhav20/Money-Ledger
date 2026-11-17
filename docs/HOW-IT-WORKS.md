@@ -279,8 +279,8 @@ generated; real statements are never committed (the repository is public, and gi
 
 ## 10b. The web app (`packages/web`)
 
-So far: the look and the parts every screen is built from, plus five real screens: **Connect**,
-the **Dashboard**, **Transactions**, **Import** and **Pots**.
+So far: the look and the parts every screen is built from, plus six real screens: **Connect**,
+the **Dashboard**, **Transactions**, **Import**, **Reconcile** and **Pots**.
 
 - **Design tokens** (`src/styles/tokens.css`): every colour, size, radius and duration lives in
   one file as CSS variables. Dark is the default; light follows your phone's setting or your
@@ -392,10 +392,31 @@ never as markup.
 Changing a pot needs a full-access token; with a read-only token you can look, and a change shows a
 clear message instead.
 
+**Reconcile** (`/reconcile`) shows how payments that cancel each other out were matched. A refund
+undoes a purchase; a friend's share pays back part of a bill. If both were counted as they are, you
+would look like you spent twice. The API pairs them up and counts the pair at its net. This page only
+shows the result and changes nothing, so it works with a read-only token.
+- **Month bar.** One month at a time, today's month first; you can go back but not past this month.
+  Four numbers sit under it: matched pairs, groups to check, payments needing review, and ordinary
+  payments (everything with nothing to match, counted on its own).
+- **Please check.** The two sides have different names (a friend's name against a restaurant), so the
+  match is a suggestion. The group is already counted at its net, so confirm it really belongs
+  together. A group of four or more payments (two paid out, two paid back, the same amounts) says
+  "payments that match in any order": every way of pairing them gives the same total, so nothing is
+  guessed.
+- **Matched.** The same name is on both sides (an airline and its refund). These are safe to net.
+- **Need review.** Payments that could be paired in more than one way, or too many to pair safely.
+  Nothing in them is netted: each counts on its own until someone decides.
+- **Not possible yet.** The page cannot confirm or reject a match, because the API has no way to
+  record that decision. Adding one is a new write endpoint, which needs your explicit go-ahead
+  (see PLAN.md section 15).
+- Names from the bank are shown as plain text, never as markup. A payment the API did not describe
+  is left out of its card instead of being shown wrong.
+
 ## 11. Not built yet
 
 - Web login (argon2id, cookie session, CSRF) arrives with the Angular app.
-- M5, remaining screens: reconcile (M5f) and PWA quick-add (M5g). The API client, Dashboard, Transactions, Import and Pots are done. The payday split (preview and apply) has no screen yet.
+- M5, remaining screen: PWA quick-add (M5g). The API client, Dashboard, Transactions, Import, Pots and Reconcile are done. The payday split (preview and apply) and confirming or rejecting a reconcile match have no screen yet; the second needs a new endpoint first.
 - M6: local MCP server so Claude can answer "can I buy this on Slice in 3?" from your real numbers.
 - M7: public demo with generated data. M8: private deployment and the Telegram bot.
 

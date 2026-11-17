@@ -1,0 +1,167 @@
+<header class="top">
+  <h1>Reconcile</h1>
+  <div class="month" role="group" aria-label="Month">
+    <button
+      ui-button
+      variant="secondary"
+      type="button"
+      aria-label="Previous month"
+      (click)="store.goToMonth(-1)"
+    >
+      ‹
+    </button>
+    <span class="month-label" aria-live="polite">{{ monthLabel() }}</span>
+    <button
+      ui-button
+      variant="secondary"
+      type="button"
+      aria-label="Next month"
+      [disabled]="!store.canGoForward()"
+      (click)="store.goToMonth(1)"
+    >
+      ›
+    </button>
+  </div>
+</header>
+
+<p class="muted intro">
+  A purchase and its refund, or a friend's share and the payment it covered, cancel each other out.
+  Matching them means you only count what you really spent. This page shows the matches and changes
+  nothing.
+</p>
+
+@switch (store.status()) { @case ('error') {
+<ui-state-message
+  kind="error"
+  title="Could not load this month"
+  [description]="store.error() ?? ''"
+>
+  <button ui-button variant="primary" type="button" (click)="reload()">Try again</button>
+</ui-state-message>
+} @case ('ready') {
+<dl class="counts">
+  <div>
+    <dt>Matched</dt>
+    <dd>{{ store.matched().length }}</dd>
+  </div>
+  <div>
+    <dt>Please check</dt>
+    <dd>{{ store.toCheck().length }}</dd>
+  </div>
+  <div>
+    <dt>Need review</dt>
+    <dd>{{ store.review().length }}</dd>
+  </div>
+  <div>
+    <dt>Ordinary payments</dt>
+    <dd>{{ store.singleCount() }}</dd>
+  </div>
+</dl>
+
+@if (store.nothingToMatch()) {
+<ui-state-message
+  kind="empty"
+  [title]="'Nothing to match in ' + monthLabel()"
+  description="No refunds or paired payments were found this month. Every payment counts on its own."
+>
+  <a class="link-button" routerLink="/transactions">See transactions</a>
+</ui-state-message>
+} @if (store.toCheck().length > 0) {
+<section aria-labelledby="rc-check">
+  <h2 id="rc-check">Please check</h2>
+  <p class="muted">
+    The names on the two sides differ, so these are suggestions. A group is counted once, at its
+    net, but confirm that its payments really belong together. Confirming or rejecting a match is
+    not possible yet.
+  </p>
+  <ul class="cards">
+    @for (group of store.toCheck(); track group.bundle.id) {
+    <li>
+      <ui-card>
+        <div class="head">
+          <ui-badge tone="warning">Please check</ui-badge>
+          @if (group.interchangeable) {
+          <span class="muted">{{ group.rows.length }} payments that match in any order</span>
+          }
+        </div>
+        <ul class="lines">
+          @for (row of group.rows; track row.id) {
+          <li>
+            <span class="what">
+              {{ row.counterparty }}<br /><small class="muted"
+                >{{ formatDay(row.date) }} · {{ store.accountName(row.accountId) }}</small
+              >
+            </span>
+            <ui-money [amount]="row.amountPaise" />
+          </li>
+          }
+        </ul>
+        <p class="net">Counted as <ui-money [amount]="group.bundle.netPaise" tone="neutral" /></p>
+      </ui-card>
+    </li>
+    }
+  </ul>
+</section>
+} @if (store.matched().length > 0) {
+<section aria-labelledby="rc-matched">
+  <h2 id="rc-matched">Matched</h2>
+  <p class="muted">The same name is on both sides, so these are safe to net.</p>
+  <ul class="cards">
+    @for (group of store.matched(); track group.bundle.id) {
+    <li>
+      <ui-card>
+        <div class="head">
+          <ui-badge tone="positive">Matched</ui-badge>
+          @if (group.interchangeable) {
+          <span class="muted">{{ group.rows.length }} payments that match in any order</span>
+          }
+        </div>
+        <ul class="lines">
+          @for (row of group.rows; track row.id) {
+          <li>
+            <span class="what">
+              {{ row.counterparty }}<br /><small class="muted"
+                >{{ formatDay(row.date) }} · {{ store.accountName(row.accountId) }}</small
+              >
+            </span>
+            <ui-money [amount]="row.amountPaise" />
+          </li>
+          }
+        </ul>
+        <p class="net">Counted as <ui-money [amount]="group.bundle.netPaise" tone="neutral" /></p>
+      </ui-card>
+    </li>
+    }
+  </ul>
+</section>
+} @if (store.review().length > 0) {
+<section aria-labelledby="rc-review">
+  <h2 id="rc-review">Need review</h2>
+  <ul class="cards">
+    @for (cluster of store.review(); track cluster.rows[0]?.id) {
+    <li>
+      <ui-card>
+        <div class="head">
+          <ui-badge tone="info">Need review</ui-badge>
+        </div>
+        <p class="muted">{{ reviewText[cluster.reason] }}</p>
+        <ul class="lines">
+          @for (row of cluster.rows; track row.id) {
+          <li>
+            <span class="what">
+              {{ row.counterparty }}<br /><small class="muted"
+                >{{ formatDay(row.date) }} · {{ store.accountName(row.accountId) }}</small
+              >
+            </span>
+            <ui-money [amount]="row.amountPaise" />
+          </li>
+          }
+        </ul>
+      </ui-card>
+    </li>
+    }
+  </ul>
+</section>
+} } @default {
+<ui-state-message kind="loading" title="Looking for matches" />
+} }

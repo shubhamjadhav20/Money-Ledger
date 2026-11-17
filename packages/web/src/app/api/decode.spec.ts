@@ -10,6 +10,7 @@ import {
   decodePot,
   decodePotMovements,
   decodePots,
+  decodeReconcile,
   decodeScheduled,
   decodeSummary,
   decodeTransaction,
@@ -25,6 +26,7 @@ import {
   MISSING_JSON,
   MOVEMENTS_JSON,
   POTS_JSON,
+  RECONCILE_JSON,
   SCHEDULED_JSON,
   SUMMARY_JSON,
   TRANSACTIONS_JSON,
@@ -117,6 +119,54 @@ describe('API model decoders', () => {
     expect(monthly?.monthlyDay).toBe(1);
     expect(monthly?.date).toBeNull();
     expect(oneOff?.date).toBe('2026-11-28');
+  });
+
+  describe('reconcile', () => {
+    it('decodes bundles, review items, the ordinary-payment count and every payment', () => {
+      const view = decodeReconcile(RECONCILE_JSON);
+      expect(view.from).toBe('2026-11-01');
+      expect(view.bundles.map((b) => [b.id, b.status, b.netPaise])).toEqual([
+        ['bundle:t-flight+t-refund', 'settled', 0],
+        ['bundle:t-dinner+t-friend', 'open', -15_000],
+        ['bundle:t-g1+t-g2+t-g3+t-g4', 'open', 800],
+      ]);
+      expect(view.unmatched[0]).toEqual({
+        txId: 't-a',
+        reason: 'ambiguous',
+        relatedTxIds: ['t-b', 't-c'],
+      });
+      expect(view.singleCount).toBe(14);
+      expect(view.transactions.get('t-flight')?.counterparty).toBe('AIRLINE ONE');
+      expect(view.transactions.size).toBe(11);
+    });
+
+    it('keeps an odd payment id from reaching the object prototype', () => {
+      const tx = RECONCILE_JSON.transactions['t-flight'];
+      const view = decodeReconcile({
+        ...RECONCILE_JSON,
+        transactions: { constructor: { ...tx, id: 'constructor' } },
+      });
+      expect(view.transactions.get('constructor')?.id).toBe('constructor');
+      expect(view.transactions.get('toString')).toBeUndefined();
+    });
+
+    it('fails by field name on a bad shape', () => {
+      const bad = (change: object) => ({ ...RECONCILE_JSON, ...change });
+      expect(() => decodeReconcile(bad({ singleCount: 'many' }))).toThrow(/reconcile\.singleCount/);
+      expect(() =>
+        decodeReconcile(bad({ bundles: [{ ...RECONCILE_JSON.bundles[0], status: 'maybe' }] })),
+      ).toThrow(/bundle\.status/);
+      expect(() =>
+        decodeReconcile(bad({ bundles: [{ ...RECONCILE_JSON.bundles[0], netPaise: 1.5 }] })),
+      ).toThrow(/bundle\.netPaise/);
+      expect(() =>
+        decodeReconcile(bad({ unmatched: [{ txId: 'x', reason: 'weird', relatedTxIds: [] }] })),
+      ).toThrow(/unmatched\.reason/);
+      expect(() => decodeReconcile(bad({ transactions: { x: { id: 'x' } } }))).toThrow(
+        /reconcile\.tx\./,
+      );
+      expect(() => decodeReconcile(bad({ from: 'soon' }))).toThrow(/reconcile\.from/);
+    });
   });
 
   describe('pots', () => {

@@ -364,3 +364,89 @@ export function decodeImportOutcome(value: unknown): ImportOutcomeView {
     held: int(r['held'], 'outcome.held'),
   };
 }
+
+export const BUNDLE_STATUSES = ['settled', 'open'] as const;
+export type BundleStatus = (typeof BUNDLE_STATUSES)[number];
+
+/** Payments that cancel each other out (a purchase and its refund), counted once at their net. */
+export interface BundleView {
+  readonly id: string;
+  readonly txIds: readonly string[];
+  /** What the group really cost (negative) or gained (positive) in total. */
+  readonly netPaise: Paise;
+  /** `settled`: same name on both sides. `open`: the names differ, so it is only a suggestion. */
+  readonly status: BundleStatus;
+}
+
+export const UNMATCHED_REASONS = ['ambiguous', 'group-too-large'] as const;
+export type UnmatchedReason = (typeof UNMATCHED_REASONS)[number];
+
+/** A payment that looks like it matches something, but not clearly enough to pair up. */
+export interface UnmatchedView {
+  readonly txId: string;
+  readonly reason: UnmatchedReason;
+  readonly relatedTxIds: readonly string[];
+}
+
+export interface ReconcileTxView {
+  readonly id: string;
+  readonly accountId: string;
+  readonly date: LocalDate;
+  readonly amountPaise: Paise;
+  readonly counterparty: string;
+}
+
+export interface ReconcileView {
+  readonly from: LocalDate;
+  readonly to: LocalDate;
+  readonly bundles: readonly BundleView[];
+  readonly unmatched: readonly UnmatchedView[];
+  /** Ordinary payments with nothing to match against. */
+  readonly singleCount: number;
+  /** Every payment a bundle or review item refers to. A Map, so an odd id can never hit a prototype. */
+  readonly transactions: ReadonlyMap<string, ReconcileTxView>;
+}
+
+function decodeReconcileTx(value: unknown): ReconcileTxView {
+  const t = record(value, 'reconcile transaction');
+  return {
+    id: text(t['id'], 'reconcile.tx.id'),
+    accountId: text(t['accountId'], 'reconcile.tx.accountId'),
+    date: day(t['date'], 'reconcile.tx.date'),
+    amountPaise: money(t['amountPaise'], 'reconcile.tx.amountPaise'),
+    counterparty: text(t['counterparty'], 'reconcile.tx.counterparty'),
+  };
+}
+
+export function decodeReconcile(value: unknown): ReconcileView {
+  const r = record(value, 'reconcile');
+  const transactions = new Map<string, ReconcileTxView>();
+  for (const [key, tx] of Object.entries(record(r['transactions'], 'reconcile.transactions'))) {
+    transactions.set(key, decodeReconcileTx(tx));
+  }
+  return {
+    from: day(r['from'], 'reconcile.from'),
+    to: day(r['to'], 'reconcile.to'),
+    bundles: list(r['bundles'], 'reconcile.bundles').map((item) => {
+      const b = record(item, 'bundle');
+      return {
+        id: text(b['id'], 'bundle.id'),
+        txIds: list(b['txIds'], 'bundle.txIds').map((id) => text(id, 'bundle.txIds[]')),
+        netPaise: money(b['netPaise'], 'bundle.netPaise'),
+        status: oneOf(b['status'], BUNDLE_STATUSES, 'bundle.status'),
+      };
+    }),
+    unmatched: list(r['unmatched'], 'reconcile.unmatched').map((item) => {
+      const u = record(item, 'unmatched');
+      return {
+        txId: text(u['txId'], 'unmatched.txId'),
+        reason: oneOf(u['reason'], UNMATCHED_REASONS, 'unmatched.reason'),
+        relatedTxIds: list(u['relatedTxIds'], 'unmatched.relatedTxIds').map((id) =>
+          text(id, 'unmatched.relatedTxIds[]'),
+        ),
+      };
+    }),
+    singleCount: int(r['singleCount'], 'reconcile.singleCount'),
+    transactions,
+  };
+}
