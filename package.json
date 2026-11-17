@@ -14,13 +14,16 @@
     "typecheck": "tsc -p tsconfig.json && pnpm -r run typecheck",
     "test": "vitest run",
     "build": "pnpm -r --if-present run build",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build",
-    "fixtures": "node scripts/generate-fixtures.ts"
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm build",
+    "fixtures": "node scripts/generate-fixtures.ts",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.2",
+    "@vitest/coverage-v8": "5.1.0",
     "eslint": "^10.15.0",
+    "fast-check": "^4.10.2",
     "prettier": "^3.10.1",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.2",
