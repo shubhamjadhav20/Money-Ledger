@@ -79,10 +79,10 @@ ledger/
 **Dates:** transaction dates are **date-only** (`YYYY-MM-DD`, Postgres `date`, no timezone), because a statement date has no time and UTC midnight would shift it a day in IST. Timestamps (`importedAt`, `createdAt`, audit) are UTC and displayed in Asia/Kolkata. All ±N-day windows operate on calendar dates.
 
 - `Account { id, name, kind: 'bank'|'card'|'savings'|'cash', cycle?: { statementDay, dueDay } }`
-- `Transaction { id, accountId, date, amount (signed paise), counterparty, ref?, memo, category?, kind: 'spend'|'income'|'transfer', method: 'upi'|'card'|'cash'|'netbanking', importBatchId?, hash, occurrence, source: 'manual'|'import'|'sms', status: 'pending'|'posted' }`
+- `Transaction { id, accountId, date, amount (signed paise), counterparty, ref?, memo, category?, kind: 'spend'|'income'|'transfer'|'investment'|'family', method: 'upi'|'card'|'cash'|'netbanking', importBatchId?, hash, occurrence, source: 'manual'|'import'|'sms', status: 'pending'|'posted' }`
   - `manual`/`sms` entries start as `pending`; an imported statement row is always `posted`.
   - `method` is how it was paid (UPI is a method drawn from a bank account, not an account). `cash` entries belong to a `cash` account and never match statements.
-  - `kind: 'transfer'` (own-account moves, card-bill payments) is excluded from spend, burn and free-to-spend.
+  - `kind: 'transfer'` (own-account moves, card-bill payments), `'investment'` (SIP, funds: saved, not spent) and `'family'` (money sent home) are excluded from reconcile, spend, burn and free-to-spend (`isPurchaseFlow`). They are planned in pots / the payday waterfall and reported separately by `monthlySummary`.
   - `hash` + `occurrence`: see rule 1.
 - `ImportBatch { id, source: 'csv'|'pdf'|'aa-sandbox', accountId, importedAt, rowCount, contentSha256 }`
 - `Pot { id, name, kind: 'buffer'|'bill'|'spend', targetPaise? }`; **balance is derived** from `PotMovement { id, potId, amountPaise, reason: 'payday'|'spend'|'trueup'|'manual', date, paydayRunId? }` (append-only journal; a true-up is an adjusting movement, never an edit).
@@ -225,8 +225,9 @@ Verify the SDK's current registration API (`registerTool` vs older `tool`) and p
 - [x] Property tests (Σ allocations == input; each payment counted once).
 
 **M3.5 — Capture grammar + manual↔import matching, core only (day 7)**
-- [ ] Capture grammar: "20 food upi" → pending manual transaction (pure function).
-- [ ] Matching tests from rule 4b pass (single, ambiguous, fee tolerance, late posting, cash never, SMS-vs-manual dedupe, exactly-once invariant).
+- [x] `investment`/`family` kinds and `monthlySummary` (income, invested, family, spend by category, fixed/variable, leftover).
+- [x] Capture grammar: "20 food upi" → pending manual transaction (pure function, `parseCapture`).
+- [x] Matching tests from rule 4b pass (`matchStatement`, `findPendingDuplicates`) (single, ambiguous, fee tolerance, late posting, cash never, SMS-vs-manual dedupe, exactly-once invariant).
 
 **M4 — API (days 8-9)**
 - [ ] Endpoints, zod, auth (cookie session), scoped tokens, audit log, Postgres repos + migrations, preview/confirm flow, `POST /capture`, matching wired into import.
@@ -324,6 +325,7 @@ Go/no-go first: re-read Anthropic's current terms. Only build `ClaudeCodeRunner`
 
 ## 15. Decision log
 
+- 2026-11-17 (M3.5): `kind` gained `investment` and `family`; both, like `transfer`, are outside reconcile/burn/free-to-spend. `monthlySummary` counts each transaction once (a reconciled bundle counts once at its net, in the category of its biggest debit, dated at its latest member). Capture grammar: `[spent|paid|got|received] <amount> [on|for|at] <category> [memo]` plus method (`upi|card|cc|cash|netbanking|nb`) and date (`today|yesterday|YYYY-MM-DD`); default method UPI; `+amount`/`got` = income; memo capped at 80 chars with control characters stripped; never throws. Matching (rule 4b): candidates = same account, method in the statement's methods (never `cash`), same sign, amount within tolerance (default exact: a wrong merge hides a payment), ±2 days. Only a component of exactly one row and one entry merges; anything larger is ambiguous and the row is held (not inserted) until the user picks an entry or "new". SMS vs manual duplicate: one SMS + one manual merge, manual survives; two manual entries never merge. Re-import safety comes from `planImport` running first.
 - 2026-11-17 (M3): open reconcile bundles count as netted in burn (user decision). Free-to-spend reserves max(card-bill pot, card owed) per covered card, never both; buffer and due-by-payday bill pots reserve max(balance, target). Installment presets: only installments due by payday reduce free-to-spend now; fees go on installment 1. Daily burn rounds up, runway down. Payday percents are basis points of gross with largest-remainder rounding. PaydaySchedule (payday date) is separate from PaydayRule (waterfall).
 - 2026-11-17 (M2): reconcile links debit/credit by window + tolerance only; connected groups with exactly one complete pairing split into pair bundles, groups with several (interchangeable) pairings become one bundle, groups with none (or too large) go to review. A bundle auto-settles only if every pair has similar counterparties, otherwise it is `open` (golden case is open, net +₹5). Output: `bundles`, `unmatched` (review queue: ambiguous only), `singles` (no candidate). Transfers are excluded. Whether `open` bundles count as netted in free-to-spend is decided in M3.
 - 2026-11-16: Postgres instead of MongoDB (relational integrity, constraints, real transactions).
