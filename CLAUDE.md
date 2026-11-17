@@ -14,6 +14,7 @@ See PLAN.md for scope, domain rules and milestones.
 - No new write tool, token scope or public endpoint without an explicit flag/confirmation and a note in the plan.
 - Never commit real financial data. Fixtures are fake and generated. gitleaks must pass.
 - When unsure about a bank/Slice rule, add a config value and a TODO, don't guess.
+- No AI attribution anywhere: no `Co-Authored-By`, `Generated with`, or session-link lines in commit messages, PR descriptions, code or docs.
 
 ## Toolchain facts (verified 2026-11-17, re-check before upgrading)
 
