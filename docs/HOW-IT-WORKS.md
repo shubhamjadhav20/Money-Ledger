@@ -279,7 +279,8 @@ generated; real statements are never committed (the repository is public, and gi
 
 ## 10b. The web app (`packages/web`)
 
-Only the foundation exists so far: the look and the parts every screen is built from.
+So far: the look and the parts every screen is built from, plus the first real screens, **Connect**
+and the **Dashboard**.
 
 - **Design tokens** (`src/styles/tokens.css`): every colour, size, radius and duration lives in
   one file as CSS variables. Dark is the default; light follows your phone's setting or your
@@ -295,10 +296,37 @@ Only the foundation exists so far: the look and the parts every screen is built 
 - Accessibility basics are built in: a skip link, keyboard focus ring, state never carried by
   colour alone (the text says "posted", the sign is in the number), and reduced-motion support.
 
+**Connecting.** Until the proper login exists (see section 11), you paste an API token on the
+Connect screen. The token is kept in this browser tab's memory only: never in the address bar, never
+in browser storage, never printed. Reloading the page asks for it again. The page checks it by
+asking the API for your settings; a wrong token is refused with a plain message. If the API ever
+answers "not authorised" later (for example you revoked the token), the tab forgets the token and
+sends you back to Connect. The token is attached only to calls to the API, never to anything else.
+
+**Talking to the API.** Every answer is checked before it is used: money must be a whole number of
+paise and dates must be real calendar dates, otherwise the screen shows an error naming the field
+instead of a wrong number. During development the web server forwards `/api/...` to the API on
+port 3000 (the API deliberately allows no cross-site calls), so run both side by side.
+
+**The Dashboard** (`/dashboard`) answers "what can I spend until payday?":
+- The headline number is free-to-spend, with days left and the payday date. Warnings from the API
+  (for example "this balance is 9 days old") appear under it.
+- **How this is worked out** lists every line behind the number: your balances, the money set
+  aside for cards, pots and bills. The lines add up to the headline, so nothing is hidden.
+- **Forecast**: your average daily spending over the last 14 days, what you would have left on
+  payday, and whether the money lasts. This is said in words, not just colour. If the reserves
+  already use up everything, it says "Nothing free" instead of a runway.
+- **Pots**, with a progress bar toward each target, **Card dues** (what you owe and the next due
+  date) and **Due before payday** (the scheduled bills that were taken off the headline).
+- **First run**: if an account has no balance yet the API cannot work the number out. The page then
+  asks for your starting balances ("what does your bank app say today?"). For a card you type what
+  you owe as a positive number. Amounts are read as exact rupees and paise, never as decimals.
+  Saving needs a full-access token; a read-only token gets a clear message saying so.
+
 ## 11. Not built yet
 
 - Web login (argon2id, cookie session, CSRF) arrives with the Angular app.
-- M5, remaining screens: dashboard, import with the ambiguity picker, transactions, reconcile, pots, PWA quick-add. They need a small API client and a place to keep the token first.
+- M5, remaining screens: transactions, import with the ambiguity picker, reconcile, pots, PWA quick-add. The API client and the Dashboard are done.
 - M6: local MCP server so Claude can answer "can I buy this on Slice in 3?" from your real numbers.
 - M7: public demo with generated data. M8: private deployment and the Telegram bot.
 

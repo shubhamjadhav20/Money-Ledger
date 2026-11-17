@@ -42,7 +42,9 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 
 **M5a done (branch `feat/m5-web-foundation`, stacked on M4b-2c):** `packages/web` is an Angular 22 app (zoneless, standalone, signals, OnPush, plain CSS): `styles/tokens.css` (dark first, light via OS or choice, contrast tested), `styles/base.css`, `app/ui/*` (`ui-money`, `ui-card`, `ui-badge`, `ui-state-message`, `button[ui-button]`, `button[ui-chip]`), `ThemeService`, and `/gallery`. 64 web tests (`pnpm test:web`, part of `pnpm check` and CI). Node `>=24.15` is now enforced by `engines`.
 
-**Next: M5b.** An API client (token kept in memory, never in the URL; read scope for the dashboard) and the Dashboard ("free to spend until payday", pots, forecast line, upcoming dues), then Transactions, Import, Reconcile, Pots, quick-add. Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
+**M5b done (branch `feat/m5b-dashboard`):** typed API client with decoded responses (`web/src/app/api`), in-memory token (`AuthStore`, interceptor adds Bearer to `/api/` only, 401 signs the tab out), `/connect`, route guards, dev proxy (`proxy.conf.json`), and the Dashboard (`/dashboard`: free-to-spend with its lines, forecast, pots, card dues, due-before-payday, starting-balances form). 153 web tests.
+
+**Next: M5c.** Transactions screen, then Import (ambiguity picker), Reconcile, Pots, quick-add (capture-scope token). Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
 
 **Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `planning-service` `planning-routes` `analysis-service` `analysis-routes` `transaction-view` `http-support` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
 
