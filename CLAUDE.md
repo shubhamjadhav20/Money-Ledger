@@ -34,9 +34,11 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 
 **M4b-1 done (branch `feat/m4b-http-tokens`):** `createApp` (Express 5 + zod): `/health`, `/capture`, `/imports` (preview) and `/imports/confirm` (stateless), `/transactions`, `/summary`, `/tokens`; scoped tokens (`capture`/`read`/`full`), append-only audit log, per-token rate limits, tests over real HTTP on PGlite.
 
-**Next: M4b-2.** Server entrypoint (add `pg`, `PostgresDialect`, env config, migrate on start, a script to mint the first `full` token), then pots/payday/`GET /free`/`/forecast`/`/simulate`/reconcile routes and `PATCH /transactions/:id`. Ask before adding each dependency. Web login (argon2id, cookie session) comes with the Angular app (M5).
+**M4b-2a done (branch `feat/m4b-server`, stacked on M4b-1):** `pg` driver (`db/pg-client.ts`), `loadConfig`, `startServer`, `bin/serve.ts`, `bin/admin.ts` (`create-token`, `list-tokens`, `add-account`, `list-accounts`). Smoke-tested against a real Postgres 16. Run steps are in `docs/HOW-IT-WORKS.md` section 9. CI now has a Postgres service container.
 
-**Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `auth` `app`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
+**Next: M4b-2b.** Tables and routes for pots, payday, scheduled items, then `GET /free`, `/forecast`, `/simulate`, `/reconcile`, `PATCH /transactions/:id`. After that M5 (Angular). Ask before adding each dependency.
+
+**Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
 
 **Decisions:** PLAN.md section 15 (decision log) is the source of truth; read it before changing domain behaviour.
 
