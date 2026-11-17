@@ -212,9 +212,9 @@ Verify the SDK's current registration API (`registerTool` vs older `tool`) and p
 - [x] Pre-flight verifications (section 14); results in CLAUDE.md "Toolchain facts".
 
 **M1 — Core money + import (days 2-3)**
-- [ ] `Paise` helpers, money-string parser (no floats), formatter, tests.
-- [ ] `CsvImporter` + idempotent import (hash + occurrence) + fixtures with every quirk in rule 1.
-- [ ] Categoriser rules + transfer detection.
+- [x] `Paise` helpers, money-string parser (no floats), formatter, tests.
+- [x] `CsvImporter` + idempotent import (hash + occurrence) + fixtures with every quirk in rule 1.
+- [x] Categoriser rules + transfer detection.
 
 **M2 — Reconcile (days 3-4)**
 - [ ] Golden test (net +₹5) passes.
