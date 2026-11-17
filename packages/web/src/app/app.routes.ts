@@ -28,6 +28,12 @@ export const routes: Routes = [
     loadComponent: () => import('./import/import-screen').then((m) => m.ImportScreen),
   },
   {
+    path: 'reconcile',
+    title: 'Reconcile · Ledger',
+    canActivate: [connectedOnly],
+    loadComponent: () => import('./reconcile/reconcile').then((m) => m.Reconcile),
+  },
+  {
     path: 'pots',
     title: 'Pots · Ledger',
     canActivate: [connectedOnly],

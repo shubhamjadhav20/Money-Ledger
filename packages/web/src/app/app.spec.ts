@@ -45,6 +45,7 @@ describe('App shell', () => {
       'Dashboard',
       'Transactions',
       'Import',
+      'Reconcile',
       'Pots',
       'Gallery',
     ]);
@@ -88,7 +89,7 @@ describe('App shell', () => {
 });
 
 describe('Routing', () => {
-  it.each(['/', '/dashboard', '/transactions', '/import', '/pots', '/nowhere'])(
+  it.each(['/', '/dashboard', '/transactions', '/import', '/reconcile', '/pots', '/nowhere'])(
     '%s asks a signed-out visitor to connect',
     async (url) => {
       const { router } = setup();

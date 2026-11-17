@@ -15,6 +15,7 @@ import {
   decodePot,
   decodePotMovements,
   decodePots,
+  decodeReconcile,
   decodeScheduled,
   decodeSummary,
   decodeTransactions,
@@ -116,6 +117,126 @@ export const MOVEMENTS_JSON = {
     },
     { id: 'm-2', potId: 'pot-buffer', amountPaise: -100_000, reason: 'spend', date: '2026-11-12' },
   ],
+};
+
+/**
+ * November's reconcile answer: a settled flight + refund, a dinner + a friend's share whose names
+ * differ, four interchangeable ticket payments, and one purchase two refunds could belong to.
+ */
+export const RECONCILE_JSON = {
+  from: '2026-11-01',
+  to: '2026-11-30',
+  bundles: [
+    {
+      id: 'bundle:t-flight+t-refund',
+      txIds: ['t-flight', 't-refund'],
+      netPaise: 0,
+      status: 'settled',
+      reason: 'matched pair; same counterparty',
+      score: 0.9,
+    },
+    {
+      id: 'bundle:t-dinner+t-friend',
+      txIds: ['t-dinner', 't-friend'],
+      netPaise: -15_000,
+      status: 'open',
+      reason: 'matched pair; counterparties differ, confirm',
+      score: 0.6,
+    },
+    {
+      id: 'bundle:t-g1+t-g2+t-g3+t-g4',
+      txIds: ['t-g1', 't-g2', 't-g3', 't-g4'],
+      netPaise: 800,
+      status: 'open',
+      reason: 'interchangeable group; counterparties differ, confirm',
+      score: 0.5,
+    },
+  ],
+  unmatched: [
+    { txId: 't-a', reason: 'ambiguous', relatedTxIds: ['t-b', 't-c'] },
+    { txId: 't-b', reason: 'ambiguous', relatedTxIds: ['t-a'] },
+    { txId: 't-c', reason: 'ambiguous', relatedTxIds: ['t-a'] },
+  ],
+  singleCount: 14,
+  transactions: {
+    't-flight': {
+      id: 't-flight',
+      accountId: 'acc-card',
+      date: '2026-11-03',
+      amountPaise: -600_000,
+      counterparty: 'AIRLINE ONE',
+    },
+    't-refund': {
+      id: 't-refund',
+      accountId: 'acc-card',
+      date: '2026-11-05',
+      amountPaise: 600_000,
+      counterparty: 'AIRLINE ONE REFUND',
+    },
+    't-dinner': {
+      id: 't-dinner',
+      accountId: 'acc-bank',
+      date: '2026-11-09',
+      amountPaise: -135_000,
+      counterparty: 'RESTAURANT TWO',
+    },
+    't-friend': {
+      id: 't-friend',
+      accountId: 'acc-bank',
+      date: '2026-11-10',
+      amountPaise: 120_000,
+      counterparty: 'FRIEND ALPHA',
+    },
+    't-g1': {
+      id: 't-g1',
+      accountId: 'acc-bank',
+      date: '2026-11-14',
+      amountPaise: -724_600,
+      counterparty: 'EVENT TICKETS CO',
+    },
+    't-g2': {
+      id: 't-g2',
+      accountId: 'acc-bank',
+      date: '2026-11-14',
+      amountPaise: -724_600,
+      counterparty: 'EVENT TICKETS CO',
+    },
+    't-g3': {
+      id: 't-g3',
+      accountId: 'acc-bank',
+      date: '2026-11-14',
+      amountPaise: 725_000,
+      counterparty: 'FRIEND ALPHA',
+    },
+    't-g4': {
+      id: 't-g4',
+      accountId: 'acc-bank',
+      date: '2026-11-14',
+      amountPaise: 725_000,
+      counterparty: 'FRIEND BETA',
+    },
+    't-a': {
+      id: 't-a',
+      accountId: 'acc-bank',
+      date: '2026-11-12',
+      amountPaise: -200_000,
+      counterparty: 'SHOP',
+    },
+    't-b': {
+      id: 't-b',
+      accountId: 'acc-bank',
+      date: '2026-11-13',
+      amountPaise: 200_000,
+      counterparty: 'MYSTERY',
+    },
+    't-c': {
+      id: 't-c',
+      accountId: 'acc-bank',
+      date: '2026-11-13',
+      amountPaise: 200_000,
+      counterparty: 'OTHER',
+    },
+  },
 };
 
 export const SCHEDULED_JSON = {
@@ -328,6 +449,7 @@ export const POTS = decodePots(POTS_JSON);
 export const decodePotFixture = decodePot;
 export const SCHEDULED = decodeScheduled(SCHEDULED_JSON);
 export const MOVEMENTS = decodePotMovements(MOVEMENTS_JSON);
+export const RECONCILE = decodeReconcile(RECONCILE_JSON);
 export const BALANCES = decodeBalances(BALANCES_JSON);
 export const TRANSACTIONS = decodeTransactions(TRANSACTIONS_JSON);
 export const SUMMARY = decodeSummary(SUMMARY_JSON);
@@ -344,6 +466,7 @@ export type Api = Pick<
   | 'createPot'
   | 'updatePot'
   | 'potMovements'
+  | 'reconcile'
   | 'addPotMovement'
   | 'scheduled'
   | 'balances'
@@ -394,6 +517,7 @@ export function fakeApi(over: Partial<Api> = {}) {
     ),
     potMovements: vi.fn(over.potMovements ?? (() => Promise.resolve(MOVEMENTS))),
     addPotMovement: vi.fn(over.addPotMovement ?? (() => Promise.resolve())),
+    reconcile: vi.fn(over.reconcile ?? (() => Promise.resolve(RECONCILE))),
     scheduled: vi.fn(over.scheduled ?? (() => Promise.resolve(SCHEDULED))),
     balances: vi.fn(over.balances ?? (() => Promise.resolve(BALANCES))),
     recordBalance: vi.fn(over.recordBalance ?? (() => Promise.resolve())),

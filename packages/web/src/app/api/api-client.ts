@@ -14,6 +14,7 @@ import {
   decodePot,
   decodePotMovements,
   decodePots,
+  decodeReconcile,
   decodeScheduled,
   decodeSummary,
   decodeTransaction,
@@ -28,6 +29,7 @@ import type {
   MissingAccount,
   PotMovementView,
   PotView,
+  ReconcileView,
   ScheduledView,
   SummaryView,
   TransactionView,
@@ -172,6 +174,11 @@ export class ApiClient {
 
   pots(): Promise<PotView[]> {
     return this.request('GET', '/pots', decodePots);
+  }
+
+  /** Payments that match each other (purchase and refund) in a date range. Reads only. */
+  reconcile(from: LocalDate, to: LocalDate): Promise<ReconcileView> {
+    return this.request('GET', '/reconcile', decodeReconcile, { params: { from, to } });
   }
 
   /** Needs a full-access token. Returns the new pot's id. */
