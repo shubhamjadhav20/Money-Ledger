@@ -50,7 +50,9 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 
 **M5e done (branch `feat/m5e-pots`):** `/pots`: list with progress, create, edit (name/target/due date), move money in or out (direction + plain amount; sign added in code), append-only history. No new endpoint. 343 web tests.
 
-**Next: M5f** Reconcile, then **M5g** quick-add (capture-scope token). The payday split and scheduled items have no screen yet. Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
+**M5f done (branch `feat/m5f-reconcile`):** `/reconcile`: month bar, counts, Please check / Matched / Need review cards, empty and error states. Read only: confirming or rejecting a match needs a new write endpoint, which needs an explicit go-ahead. No new endpoint. 375 web tests.
+
+**Next: M5g** quick-add (capture-scope token). The payday split and scheduled items have no screen yet. Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
 
 **Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `planning-service` `planning-routes` `analysis-service` `analysis-routes` `transaction-view` `http-support` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
 
