@@ -1,0 +1,27 @@
+<ui-card>
+  <h1>Connect</h1>
+  <p class="muted">
+    Paste an API token to read your ledger. It is kept in this tab's memory only, so reloading the
+    page asks for it again.
+  </p>
+  <form (submit)="$event.preventDefault(); submit(token.value)" novalidate>
+    <label for="token">API token</label>
+    <input
+      #token
+      id="token"
+      name="token"
+      type="password"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      [attr.aria-invalid]="problem() ? 'true' : null"
+      [attr.aria-describedby]="problem() ? 'token-problem' : null"
+    />
+    @if (problem(); as text) {
+    <p id="token-problem" class="problem" role="alert">{{ text }}</p>
+    }
+    <button ui-button variant="primary" type="submit" [disabled]="busy()">
+      {{ busy() ? 'Checking…' : 'Connect' }}
+    </button>
+  </form>
+</ui-card>
