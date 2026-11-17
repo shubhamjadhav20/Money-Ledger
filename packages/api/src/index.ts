@@ -8,3 +8,5 @@ export * from './db/migrations.ts';
 export * from './db/schema.ts';
 export * from './capture-service.ts';
 export * from './import-service.ts';
+export * from './app.ts';
+export * from './auth.ts';
