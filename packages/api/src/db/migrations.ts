@@ -69,6 +69,45 @@ const migrations: Record<string, Migration> = {
       );
     },
   },
+  '002_tokens_and_audit': {
+    async up(db: Kysely<unknown>) {
+      await sql`
+        create table api_tokens (
+          id text primary key,
+          name text not null check (length(name) between 1 and 60),
+          scope text not null check (scope in ('capture','read','full')),
+          -- sha256 of a 256-bit random secret; the secret itself is shown once and never stored.
+          token_sha256 text not null unique check (token_sha256 ~ '^[0-9a-f]{64}$'),
+          created_at timestamptz not null default now(),
+          last_used_at timestamptz,
+          revoked_at timestamptz
+        )`.execute(db);
+
+      await sql`
+        create table audit_log (
+          id bigint generated always as identity primary key,
+          at timestamptz not null default now(),
+          token_id text references api_tokens (id),
+          action text not null,
+          entity text not null,
+          entity_id text,
+          -- counts and ids only: never memos, counterparties or message bodies.
+          detail jsonb not null default '{}'::jsonb
+        )`.execute(db);
+
+      await sql`
+        create function audit_log_append_only() returns trigger language plpgsql as $$
+        begin
+          raise exception 'audit_log is append-only';
+        end $$`.execute(db);
+      await sql`
+        create trigger audit_log_no_change before update or delete on audit_log
+        for each row execute function audit_log_append_only()`.execute(db);
+      await sql`
+        create trigger audit_log_no_truncate before truncate on audit_log
+        for each statement execute function audit_log_append_only()`.execute(db);
+    },
+  },
 };
 
 const provider: MigrationProvider = { getMigrations: () => Promise.resolve(migrations) };

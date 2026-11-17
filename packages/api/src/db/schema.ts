@@ -42,8 +42,32 @@ export interface TransactionsTable {
   created_at: ColumnType<Date, never, never>;
 }
 
+export type TokenScope = 'capture' | 'read' | 'full';
+
+export interface ApiTokensTable {
+  id: string;
+  name: string;
+  scope: TokenScope;
+  token_sha256: string;
+  created_at: Generated<Date>;
+  last_used_at: Date | null;
+  revoked_at: Date | null;
+}
+
+export interface AuditLogTable {
+  id: Generated<number>;
+  at: Generated<Date>;
+  token_id: string | null;
+  action: string;
+  entity: string;
+  entity_id: string | null;
+  detail: Generated<Record<string, string | number | boolean>>;
+}
+
 export interface Database {
   accounts: AccountsTable;
   import_batches: ImportBatchesTable;
   transactions: TransactionsTable;
+  api_tokens: ApiTokensTable;
+  audit_log: AuditLogTable;
 }

@@ -4,8 +4,9 @@ A plain-language guide to the whole project. It is updated at the end of each mi
 always describes what exists today. For the plan and the decision log, see `PLAN.md`; for the
 rules Claude Code follows, see `CLAUDE.md`.
 
-**Status:** M0 to M3.5 (core logic) and M4a (database, import, quick-add) are built. The HTTP API,
-the Angular app, MCP and the Telegram bot are not built yet (see section 9).
+**Status:** M0 to M3.5 (core logic), M4a (database, import, quick-add) and M4b-1 (HTTP API with
+scoped tokens and audit log) are built. The server entrypoint, the Angular app, MCP and the
+Telegram bot are not built yet (see section 10).
 
 ## 1. What it is
 
@@ -143,7 +144,46 @@ adding a third-party package.
   Held rows stay unwritten, so importing the same file again after you decide re-presents them.
   `choices` maps a held row to a pending entry id, or `"new"`.
 
-## 8. Running and testing
+## 8. The HTTP API (`packages/api/src/app.ts`)
+
+Express 5 with zod validation. `createApp({ db, newId, ... })` returns the app; nothing listens on
+a port until the server entrypoint is written (next slice), and tests start it on a random port
+and call it with `fetch`.
+
+| Route | Scope | What it does |
+|---|---|---|
+| `GET /health` | none | liveness |
+| `POST /capture` | capture | `{ text }` becomes a pending manual entry |
+| `POST /imports` | full | preview: send `{ accountId, mappingId, csv }`, get what would happen (no writes) |
+| `POST /imports/confirm` | full | same body plus optional `choices`; commits in one transaction |
+| `GET /transactions` | read | filters: `from to category q status limit` |
+| `GET /summary?month=YYYY-MM` | read | `monthlySummary` over that month, with reconcile bundles |
+| `GET/POST /tokens`, `DELETE /tokens/:id` | full | list, create (secret shown once), revoke |
+
+**Import is stateless.** The client sends the same CSV to preview and to confirm (confirm also
+carries your `choices` for ambiguous rows). The server recomputes the plan inside the commit
+transaction, so there is no preview token to expire or forge, and the result always reflects the
+database at the moment of commit.
+
+### Security model
+
+- **Scoped tokens.** `capture` can only add pending entries (safe to keep on a phone or in a bot),
+  `read` can only read (for MCP and the bot), `full` can do everything including managing tokens.
+  Every route declares the scope it needs; the check is in one place (`guard`).
+- **Token storage.** A token is `led_` plus 256 random bits. Only its sha256 is stored (a
+  database leak does not reveal usable tokens); the secret is shown once at creation. Revoking
+  takes effect on the very next request.
+- **Audit log.** Every mutation writes a row (who, what, when) with counts and ids only, never
+  memos or counterparties. The table refuses UPDATE, DELETE and TRUNCATE (database triggers).
+- **Rate limits.** Per token, in memory: 60 captures and 300 other requests per minute (config).
+- **Validation.** Strict zod schemas reject unknown fields; errors list the field path and rule but
+  never echo what you sent. Bodies are size-limited (10 KB, or 2.5 MB for imports).
+- **Errors** are always `{ code, message, details? }`; unexpected failures return a generic 500 and
+  log only the error class name.
+- **Headers.** `no-store`, `nosniff`, and a locked-down CSP are set by hand. `helmet`, CORS and
+  cookie sessions arrive with the web app.
+
+## 9. Running and testing
 
 ```
 pnpm install
@@ -155,18 +195,20 @@ pnpm check          # lint, format, typecheck, coverage tests, build (what CI ru
 Needs Node 24 (Angular 22 later needs 24.15+) and pnpm 12 via corepack. Fixtures are fake and
 generated; real statements are never committed (the repository is public, and gitleaks runs in CI).
 
-## 9. Not built yet
+## 10. Not built yet
 
-- M4b: HTTP layer (Express + zod), login and scoped tokens, audit log, `GET /free`, `/simulate`, reports.
+- M4b-2: server entrypoint (`pg`, config, migrations on start, a command to mint the first token), then pots, payday, `GET /free`, `/forecast`, `/simulate`, reconcile routes, `PATCH /transactions/:id`.
+- Web login (argon2id, cookie session, CSRF) arrives with the Angular app.
 - M5: Angular app (dashboard, import with the ambiguity picker, reconcile, pots, PWA quick-add).
 - M6: local MCP server so Claude can answer "can I buy this on Slice in 3?" from your real numbers.
 - M7: public demo with generated data. M8: private deployment and the Telegram bot.
 
-## 10. Decisions worth remembering
+## 11. Decisions worth remembering
 
 - Postgres over MongoDB: relational integrity and real constraints suit money.
 - Kysely over an ORM: typed SQL you can read; no hidden queries.
 - PGlite for tests: real Postgres semantics without Docker, so tests run anywhere.
 - Strict matching by default (exact amount): a wrong merge hides a payment. Allow a small fee
   tolerance per account later if a bank really adds fees.
+- Tokens over a shared secret header: each client gets its own scope, can be revoked alone, and leaves an audit trail.
 - No hosted AI in v1: Claude reads through MCP on your machine; the numbers come from core.
