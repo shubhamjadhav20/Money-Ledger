@@ -108,6 +108,107 @@ const migrations: Record<string, Migration> = {
         for each statement execute function audit_log_append_only()`.execute(db);
     },
   },
+  '003_planning': {
+    async up(db: Kysely<unknown>) {
+      // One row of user settings. Defaults are placeholders the user can change (PATCH /settings).
+      await sql`
+        create table settings (
+          id int primary key check (id = 1),
+          payday_day int not null check (payday_day between 1 and 31),
+          payday_weekend text not null check (payday_weekend in ('none','previous-weekday')),
+          card_exposure text not null check (card_exposure in ('all_outstanding','due_before_payday'))
+        )`.execute(db);
+      await sql`
+        insert into settings (id, payday_day, payday_weekend, card_exposure)
+        values (1, 7, 'previous-weekday', 'all_outstanding')`.execute(db);
+
+      await sql`
+        create table pots (
+          id text primary key,
+          name text not null check (length(name) between 1 and 60),
+          kind text not null check (kind in ('buffer','bill','spend')),
+          target_paise bigint check (target_paise >= 0),
+          due_date date,
+          covers_card_account_id text references accounts (id),
+          created_at timestamptz not null default now(),
+          check (due_date is null or kind = 'bill'),
+          check (covers_card_account_id is null or kind = 'bill')
+        )`.execute(db);
+
+      // The journal. A pot's balance is the sum of its movements and is never stored.
+      await sql`
+        create table payday_runs (
+          id text primary key,
+          date date not null,
+          amount_paise bigint not null check (amount_paise > 0),
+          created_at timestamptz not null default now()
+        )`.execute(db);
+      await sql`
+        create table pot_movements (
+          id text primary key,
+          pot_id text not null references pots (id),
+          amount_paise bigint not null check (amount_paise <> 0),
+          reason text not null check (reason in ('payday','spend','trueup','manual')),
+          date date not null,
+          payday_run_id text references payday_runs (id),
+          created_at timestamptz not null default now(),
+          check ((reason = 'payday') = (payday_run_id is not null))
+        )`.execute(db);
+      await sql`
+        create function journal_append_only() returns trigger language plpgsql as $$
+        begin
+          raise exception '% is append-only', tg_table_name;
+        end $$`.execute(db);
+      for (const table of ['pot_movements', 'payday_runs']) {
+        await sql`
+          create trigger ${sql.raw(`${table}_no_change`)} before update or delete on ${sql.table(table)}
+          for each row execute function journal_append_only()`.execute(db);
+        await sql`
+          create trigger ${sql.raw(`${table}_no_truncate`)} before truncate on ${sql.table(table)}
+          for each statement execute function journal_append_only()`.execute(db);
+      }
+
+      await sql`
+        create table payday_rules (
+          id text primary key,
+          position int not null unique check (position >= 0),
+          name text not null check (length(name) between 1 and 60),
+          kind text not null check (kind in ('fixed','percent','remainder')),
+          amount_paise bigint check (amount_paise >= 0),
+          basis_points int check (basis_points between 0 and 10000),
+          pot_id text references pots (id),
+          check (
+            (kind = 'fixed' and amount_paise is not null and basis_points is null) or
+            (kind = 'percent' and basis_points is not null and amount_paise is null) or
+            (kind = 'remainder' and amount_paise is null and basis_points is null)
+          )
+        )`.execute(db);
+
+      // Known one-off or monthly outflows outside pots (recharge, an installment).
+      await sql`
+        create table scheduled_items (
+          id text primary key,
+          name text not null check (length(name) between 1 and 60),
+          amount_paise bigint not null check (amount_paise > 0),
+          date date,
+          monthly_day int check (monthly_day between 1 and 31),
+          created_at timestamptz not null default now(),
+          check ((date is null) <> (monthly_day is null))
+        )`.execute(db);
+
+      // The user's reality anchor: "my bank balance was X on this date". Cards store a negative
+      // amount when money is owed. Balances after the checkpoint are derived from transactions.
+      await sql`
+        create table balance_checkpoints (
+          id text primary key,
+          account_id text not null references accounts (id),
+          date date not null,
+          amount_paise bigint not null,
+          created_at timestamptz not null default now(),
+          unique (account_id, date)
+        )`.execute(db);
+    },
+  },
 };
 
 const provider: MigrationProvider = { getMigrations: () => Promise.resolve(migrations) };

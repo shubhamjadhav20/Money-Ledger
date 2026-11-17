@@ -39,6 +39,9 @@ import {
 } from './auth.ts';
 import type { Principal, RateLimiter, TokenScope } from './auth.ts';
 import type { Database } from './db/schema.ts';
+import { HttpError, fail, idText, isoDate, parseWith } from './http-support.ts';
+import { PlanningError } from './planning-service.ts';
+import { planningHttpError, registerPlanningRoutes } from './planning-routes.ts';
 import { confirmImport, planStatement } from './import-service.ts';
 import type { ImportRequest, StatementPlan } from './import-service.ts';
 
@@ -71,7 +74,6 @@ export function todayInKolkata(now: Date): LocalDate {
 const IMPORT_BODY_LIMIT = '2500kb';
 const MAX_CSV_CHARS = 2_000_000;
 
-const idText = z.string().min(1).max(64);
 const captureBody = z.strictObject({
   text: z.string().min(1).max(200),
   accountId: idText.optional(),
@@ -86,7 +88,6 @@ const tokenBody = z.strictObject({
   name: z.string().min(1).max(60),
   scope: z.enum(['capture', 'read', 'full']),
 });
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u);
 const transactionsQuery = z.strictObject({
   from: isoDate.optional(),
   to: isoDate.optional(),
@@ -96,34 +97,6 @@ const transactionsQuery = z.strictObject({
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
 const summaryQuery = z.strictObject({ month: z.string().regex(/^\d{4}-(?:0[1-9]|1[0-2])$/u) });
-
-class HttpError extends Error {
-  readonly status: number;
-  readonly code: string;
-  readonly details: unknown;
-  constructor(status: number, code: string, message: string, details?: unknown) {
-    super(message);
-    this.status = status;
-    this.code = code;
-    this.details = details;
-  }
-}
-
-const fail = (status: number, code: string, message: string, details?: unknown): never => {
-  throw new HttpError(status, code, message, details);
-};
-
-/** Validation problems by path and rule only: submitted values are never echoed. */
-function parseWith<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
-  const result = schema.safeParse(input);
-  if (result.success) return result.data;
-  return fail(
-    400,
-    'invalid_request',
-    'Request did not match the expected shape',
-    result.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-  );
-}
 
 const escapeLike = (text: string): string => text.replace(/[\\%_]/gu, (c) => `\\${c}`);
 const sha256 = (text: string): string => createHash('sha256').update(text).digest('hex');
@@ -316,9 +289,8 @@ export function createApp(options: AppOptions): express.Express {
   app.get('/transactions', guard('read'), async (req, res) => {
     const q = parseWith(transactionsQuery, req.query);
     let query = db.selectFrom('transactions').selectAll();
-    if (q.from !== undefined)
-      query = query.where('date', '>=', parseLocalDate(q.from, 'yyyy-mm-dd'));
-    if (q.to !== undefined) query = query.where('date', '<=', parseLocalDate(q.to, 'yyyy-mm-dd'));
+    if (q.from !== undefined) query = query.where('date', '>=', q.from);
+    if (q.to !== undefined) query = query.where('date', '<=', q.to);
     if (q.category !== undefined) query = query.where('category', '=', q.category);
     if (q.status !== undefined) query = query.where('status', '=', q.status);
     if (q.q !== undefined) {
@@ -411,13 +383,23 @@ export function createApp(options: AppOptions): express.Express {
     res.status(204).end();
   });
 
+  registerPlanningRoutes({
+    app,
+    db,
+    newId,
+    today: () => todayInKolkata(now()),
+    guard,
+    actor,
+  });
+
   app.use((_req, _res, next) => {
     next(new HttpError(404, 'not_found', 'No such endpoint'));
   });
 
   // Express recognises error handlers by their four parameters, so `next` must stay in the signature.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((thrown: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    const err = thrown instanceof PlanningError ? planningHttpError(thrown) : thrown;
     if (err instanceof HttpError) {
       res.status(err.status).json({
         code: err.code,
