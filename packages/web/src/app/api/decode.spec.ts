@@ -3,6 +3,8 @@ import {
   decodeBalances,
   decodeForecast,
   decodeFree,
+  decodeImportOutcome,
+  decodeImportPlan,
   decodeMissing,
   decodePots,
   decodeScheduled,
@@ -14,6 +16,8 @@ import {
   BALANCES_JSON,
   FORECAST_JSON,
   FREE_JSON,
+  IMPORT_OUTCOME_JSON,
+  IMPORT_PLAN_JSON,
   MISSING_JSON,
   POTS_JSON,
   SCHEDULED_JSON,
@@ -166,5 +170,58 @@ describe('transaction and summary decoders', () => {
     expect(() =>
       decodeSummary({ ...SUMMARY_JSON, spendByCategory: [{ category: 'x', spentPaise: 1 }] }),
     ).toThrow(/category\.fixed/);
+  });
+});
+
+describe('import decoders', () => {
+  it('decode a plan: new rows, rows that complete an entry, ambiguous rows and read problems', () => {
+    const plan = decodeImportPlan(IMPORT_PLAN_JSON);
+    expect(plan.duplicateCount).toBe(3);
+    expect(plan.toInsert.map((r) => r.rowKey)).toEqual(['k-rent#1', 'k-cinema#1']);
+    expect(plan.toInsert[0]?.amountPaise).toBe(-1_800_000);
+    expect(plan.merges[0]?.pendingId).toBe('t-chai');
+    expect(plan.ambiguous[0]?.pendingIds).toEqual(['p-bakery-a', 'p-bakery-b']);
+    expect(plan.issues).toEqual([]);
+  });
+
+  it('decode issues, line 0 meaning the whole file', () => {
+    const plan = decodeImportPlan({
+      ...IMPORT_PLAN_JSON,
+      issues: [
+        { line: 0, reason: 'Header row not found' },
+        { line: 7, reason: 'Bad date' },
+      ],
+    });
+    expect(plan.issues).toEqual([
+      { line: 0, reason: 'Header row not found' },
+      { line: 7, reason: 'Bad date' },
+    ]);
+  });
+
+  it('refuse a plan with a float amount, a bad date or a missing list', () => {
+    const row = IMPORT_PLAN_JSON.toInsert[0];
+    expect(() =>
+      decodeImportPlan({ ...IMPORT_PLAN_JSON, toInsert: [{ ...row, amountPaise: 1.5 }] }),
+    ).toThrow(/row\.amountPaise/);
+    expect(() =>
+      decodeImportPlan({ ...IMPORT_PLAN_JSON, toInsert: [{ ...row, date: '2026-02-30' }] }),
+    ).toThrow(/row\.date/);
+    expect(() => decodeImportPlan({ ...IMPORT_PLAN_JSON, issues: undefined })).toThrow(
+      /import\.issues/,
+    );
+    expect(() =>
+      decodeImportPlan({
+        ...IMPORT_PLAN_JSON,
+        ambiguous: [{ ...IMPORT_PLAN_JSON.ambiguous[0], pendingIds: [1] }],
+      }),
+    ).toThrow(/ambiguous\.pendingIds/);
+  });
+
+  it('decode the outcome, with no batch when nothing changed', () => {
+    expect(decodeImportOutcome(IMPORT_OUTCOME_JSON).inserted).toBe(2);
+    expect(decodeImportOutcome({ ...IMPORT_OUTCOME_JSON, batchId: null }).batchId).toBeNull();
+    expect(() => decodeImportOutcome({ ...IMPORT_OUTCOME_JSON, merged: '1' })).toThrow(
+      /outcome\.merged/,
+    );
   });
 });

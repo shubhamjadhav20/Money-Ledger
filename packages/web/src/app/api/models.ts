@@ -238,3 +238,96 @@ export function decodeSummary(value: unknown): SummaryView {
     }),
   };
 }
+
+export interface ImportRowView {
+  /** Identifies this statement row across previews; used to send a choice back. */
+  readonly rowKey: string;
+  /** 1-based line in the uploaded file. */
+  readonly line: number;
+  readonly date: LocalDate;
+  readonly amountPaise: Paise;
+  readonly counterparty: string;
+}
+
+export interface ImportMergeView extends ImportRowView {
+  /** The entry you added by hand that this statement row completes. */
+  readonly pendingId: string;
+}
+
+export interface ImportAmbiguousView extends ImportRowView {
+  /** Entries that could each be this payment. The user decides; nothing is guessed. */
+  readonly pendingIds: readonly string[];
+}
+
+export interface ImportIssueView {
+  /** 0 when the problem is the whole file. */
+  readonly line: number;
+  readonly reason: string;
+}
+
+export interface ImportPlanView {
+  readonly duplicateCount: number;
+  readonly toInsert: readonly ImportRowView[];
+  readonly merges: readonly ImportMergeView[];
+  readonly ambiguous: readonly ImportAmbiguousView[];
+  readonly issues: readonly ImportIssueView[];
+}
+
+export interface ImportOutcomeView {
+  /** Null when nothing changed, so no batch was created. */
+  readonly batchId: string | null;
+  readonly inserted: number;
+  readonly merged: number;
+  readonly duplicates: number;
+  readonly held: number;
+}
+
+function decodeImportRow(value: unknown, what: string): [ImportRowView, Record<string, unknown>] {
+  const r = record(value, what);
+  return [
+    {
+      rowKey: text(r['rowKey'], `${what}.rowKey`),
+      line: int(r['line'], `${what}.line`),
+      date: day(r['date'], `${what}.date`),
+      amountPaise: money(r['amountPaise'], `${what}.amountPaise`),
+      counterparty: text(r['counterparty'], `${what}.counterparty`),
+    },
+    r,
+  ];
+}
+
+export function decodeImportPlan(value: unknown): ImportPlanView {
+  const r = record(value, 'import plan');
+  return {
+    duplicateCount: int(r['duplicateCount'], 'import.duplicateCount'),
+    toInsert: list(r['toInsert'], 'import.toInsert').map((item) => decodeImportRow(item, 'row')[0]),
+    merges: list(r['merges'], 'import.merges').map((item) => {
+      const [row, raw] = decodeImportRow(item, 'merge');
+      return { ...row, pendingId: text(raw['pendingId'], 'merge.pendingId') };
+    }),
+    ambiguous: list(r['ambiguous'], 'import.ambiguous').map((item) => {
+      const [row, raw] = decodeImportRow(item, 'ambiguous row');
+      return {
+        ...row,
+        pendingIds: list(raw['pendingIds'], 'ambiguous.pendingIds').map((id) =>
+          text(id, 'ambiguous.pendingIds[]'),
+        ),
+      };
+    }),
+    issues: list(r['issues'], 'import.issues').map((item) => {
+      const i = record(item, 'import issue');
+      return { line: int(i['line'], 'issue.line'), reason: text(i['reason'], 'issue.reason') };
+    }),
+  };
+}
+
+export function decodeImportOutcome(value: unknown): ImportOutcomeView {
+  const r = record(value, 'import outcome');
+  return {
+    batchId: nullable(r['batchId'], (v) => text(v, 'outcome.batchId')),
+    inserted: int(r['inserted'], 'outcome.inserted'),
+    merged: int(r['merged'], 'outcome.merged'),
+    duplicates: int(r['duplicates'], 'outcome.duplicates'),
+    held: int(r['held'], 'outcome.held'),
+  };
+}

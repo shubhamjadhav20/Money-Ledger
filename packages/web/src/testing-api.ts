@@ -3,11 +3,15 @@
  * what the server sends; the "views" are the same data after decoding. Today is 2026-11-17 and
  * payday is 7 December, so free-to-spend covers 20 days.
  */
-import type { ApiClient, FreeResult } from './app/api/api-client';
+import type { ApiClient, FreeResult, ImportRequest } from './app/api/api-client';
+import type { ImportPlanView } from './app/api/models';
+import { must } from './testing';
 import {
   decodeBalances,
   decodeForecast,
   decodeFree,
+  decodeImportOutcome,
+  decodeImportPlan,
   decodePots,
   decodeScheduled,
   decodeSummary,
@@ -196,6 +200,100 @@ export const SUMMARY_JSON = {
   ],
 };
 
+/** Entries added by hand that are still waiting for their statement row. */
+export const PENDING_JSON = {
+  items: [
+    {
+      id: 'p-bakery-a',
+      accountId: 'acc-bank',
+      date: '2026-10-06',
+      amountPaise: -17_539,
+      counterparty: '',
+      memo: 'bakery',
+      category: 'food',
+      kind: 'spend',
+      method: 'upi',
+      status: 'pending',
+      source: 'manual',
+    },
+    {
+      id: 'p-bakery-b',
+      accountId: 'acc-bank',
+      date: '2026-10-07',
+      amountPaise: -17_539,
+      counterparty: '',
+      memo: 'bread and cake',
+      category: 'food',
+      kind: 'spend',
+      method: 'upi',
+      status: 'pending',
+      source: 'manual',
+    },
+    {
+      id: 't-chai',
+      accountId: 'acc-bank',
+      date: '2026-10-03',
+      amountPaise: -2_000,
+      counterparty: '',
+      memo: 'chai',
+      category: 'food',
+      kind: 'spend',
+      method: 'upi',
+      status: 'pending',
+      source: 'manual',
+    },
+  ],
+};
+
+export const IMPORT_PLAN_JSON = {
+  duplicateCount: 3,
+  toInsert: [
+    {
+      rowKey: 'k-rent#1',
+      line: 6,
+      date: '2026-10-02',
+      amountPaise: -1_800_000,
+      counterparty: 'NEFT RENT TO LANDLORD (DEMO)',
+    },
+    {
+      rowKey: 'k-cinema#1',
+      line: 7,
+      date: '2026-10-02',
+      amountPaise: -120_406,
+      counterparty: 'UPI/CINEMA HALL',
+    },
+  ],
+  merges: [
+    {
+      rowKey: 'k-chai#1',
+      line: 8,
+      date: '2026-10-03',
+      amountPaise: -2_000,
+      counterparty: 'UPI/CHAI POINT',
+      pendingId: 't-chai',
+    },
+  ],
+  ambiguous: [
+    {
+      rowKey: 'k-bakery#1',
+      line: 9,
+      date: '2026-10-07',
+      amountPaise: -17_539,
+      counterparty: 'UPI/BAKERY THREE',
+      pendingIds: ['p-bakery-a', 'p-bakery-b'],
+    },
+  ],
+  issues: [],
+};
+
+export const IMPORT_OUTCOME_JSON = {
+  batchId: 'batch-1',
+  inserted: 2,
+  merged: 1,
+  duplicates: 3,
+  held: 1,
+};
+
 export const FREE = decodeFree(FREE_JSON);
 export const FORECAST = decodeForecast(FORECAST_JSON);
 export const POTS = decodePots(POTS_JSON);
@@ -203,6 +301,9 @@ export const SCHEDULED = decodeScheduled(SCHEDULED_JSON);
 export const BALANCES = decodeBalances(BALANCES_JSON);
 export const TRANSACTIONS = decodeTransactions(TRANSACTIONS_JSON);
 export const SUMMARY = decodeSummary(SUMMARY_JSON);
+export const PENDING = decodeTransactions(PENDING_JSON);
+export const IMPORT_PLAN = decodeImportPlan(IMPORT_PLAN_JSON);
+export const IMPORT_OUTCOME = decodeImportOutcome(IMPORT_OUTCOME_JSON);
 
 export type Api = Pick<
   ApiClient,
@@ -216,9 +317,31 @@ export type Api = Pick<
   | 'transactions'
   | 'summary'
   | 'updateTransaction'
+  | 'previewImport'
+  | 'confirmImport'
 >;
 
 /** An `ApiClient` stand-in that answers with the fixtures above unless told otherwise. */
+/**
+ * A server stand-in for the import preview: the ambiguous bakery row becomes a merge when one of its
+ * candidates is chosen, a new transaction on "new", and stays ambiguous for anything else.
+ */
+export function planFor(request: ImportRequest): ImportPlanView {
+  const choice = request.choices?.['k-bakery#1'];
+  const { pendingIds, ...row } = must(IMPORT_PLAN.ambiguous[0]);
+  if (choice === 'new') {
+    return { ...IMPORT_PLAN, ambiguous: [], toInsert: [...IMPORT_PLAN.toInsert, row] };
+  }
+  if (choice !== undefined && pendingIds.includes(choice)) {
+    return {
+      ...IMPORT_PLAN,
+      ambiguous: [],
+      merges: [...IMPORT_PLAN.merges, { ...row, pendingId: choice }],
+    };
+  }
+  return IMPORT_PLAN;
+}
+
 export function fakeApi(over: Partial<Api> = {}) {
   const ready: FreeResult = { kind: 'ready', free: FREE };
   return {
@@ -231,6 +354,8 @@ export function fakeApi(over: Partial<Api> = {}) {
     recordBalance: vi.fn(over.recordBalance ?? (() => Promise.resolve())),
     transactions: vi.fn(over.transactions ?? (() => Promise.resolve(TRANSACTIONS))),
     summary: vi.fn(over.summary ?? (() => Promise.resolve(SUMMARY))),
+    previewImport: vi.fn(over.previewImport ?? (() => Promise.resolve(IMPORT_PLAN))),
+    confirmImport: vi.fn(over.confirmImport ?? (() => Promise.resolve(IMPORT_OUTCOME))),
     updateTransaction: vi.fn(
       over.updateTransaction ??
         ((id, change) => {
