@@ -201,7 +201,7 @@ Verify the SDK's current registration API (`registerTool` vs older `tool`) and p
 - **Telegram bot (M8):** user-ID allowlist, **long polling preferred** (no public inbound port, so the private instance can stay behind the private network); if a webhook is used instead: secret-token header + HTTPS, never both. One message at a time, per-minute rate limit, message bodies never logged.
 - **Server hygiene (M8, real data lives here):** SSH keys only, ufw/fail2ban, unattended security upgrades, secrets in a 0600 env file owned by the service user, DB role per service (bot/API use least-privilege roles).
 
-## 10. Milestones (v1 ≈ 2.5 weeks; day numbers are estimates, re-plan after M3; gym, sleep and job-search follow-ups come first each day)
+## 10. Milestones (v1 ≈ 2.5 weeks; day numbers are estimates, re-plan after M3)
 
 ### v1
 
