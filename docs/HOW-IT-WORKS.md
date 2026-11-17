@@ -279,8 +279,8 @@ generated; real statements are never committed (the repository is public, and gi
 
 ## 10b. The web app (`packages/web`)
 
-So far: the look and the parts every screen is built from, plus four real screens: **Connect**,
-the **Dashboard**, **Transactions** and **Import**.
+So far: the look and the parts every screen is built from, plus five real screens: **Connect**,
+the **Dashboard**, **Transactions**, **Import** and **Pots**.
 
 - **Design tokens** (`src/styles/tokens.css`): every colour, size, radius and duration lives in
   one file as CSS variables. Dark is the default; light follows your phone's setting or your
@@ -369,10 +369,33 @@ Importing needs a full-access token; with a read-only token you can open the pag
 explains that it needs a full-access one. Names and notes from the file are shown as plain text,
 never as markup.
 
+**Pots** (`/pots`) is where money is set aside, and where every change to a pot is made:
+- **The list.** Each pot shows its kind (Safety buffer, Bill or Spending), what is in it, a progress
+  bar toward its target, its due date, and, for a bill pot that pays a card, which card. The
+  balance is never stored: it is the sum of the pot's history, added up by the API.
+- **New pot.** Name, what it is for, an optional target, and (for a bill) an optional due date and
+  an optional card it pays. Amounts are read as exact rupees and paise. Only bills can have a due
+  date or a card, the same rule the API enforces.
+- **Edit.** Name, target and due date can change; the kind and the card cannot. Only what changed is
+  sent, and emptying the target or the due date clears it.
+- **Move money.** Pick "Put money in" or "Take money out", type a plain amount (the sign is added
+  for you), and say why (moved by hand, spent from the pot, or a correction). If you take out more
+  than the pot holds, a note says its balance will go below zero; it is allowed, because a
+  correction can legitimately need it. The date is left to the server, which uses today in India.
+- **History.** The pot's journal, newest first, with a plain-words reason for each line. The
+  journal only grows: nothing can be edited or deleted, so a mistake is fixed by moving money the
+  other way and choosing "Correction".
+- **How pots affect the Dashboard.** Safety buffers and bills are kept out of free-to-spend; a
+  Spending pot is not. A bill pot that pays a card is compared with what the card owes, and the
+  larger of the two is kept out. The page says this in one sentence at the top.
+
+Changing a pot needs a full-access token; with a read-only token you can look, and a change shows a
+clear message instead.
+
 ## 11. Not built yet
 
 - Web login (argon2id, cookie session, CSRF) arrives with the Angular app.
-- M5, remaining screens: reconcile, pots, PWA quick-add. The API client, Dashboard, Transactions and Import are done.
+- M5, remaining screens: reconcile (M5f) and PWA quick-add (M5g). The API client, Dashboard, Transactions, Import and Pots are done. The payday split (preview and apply) has no screen yet.
 - M6: local MCP server so Claude can answer "can I buy this on Slice in 3?" from your real numbers.
 - M7: public demo with generated data. M8: private deployment and the Telegram bot.
 

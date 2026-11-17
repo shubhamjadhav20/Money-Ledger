@@ -1,0 +1,91 @@
+<form (submit)="$event.preventDefault(); submit()" novalidate>
+  <div class="field">
+    <label [for]="id() + '-name'">Name</label>
+    <input
+      class="control"
+      [id]="id() + '-name'"
+      type="text"
+      maxlength="60"
+      autocomplete="off"
+      [value]="name()"
+      (input)="onName($event)"
+      [attr.aria-invalid]="problems().name ? 'true' : null"
+      [attr.aria-describedby]="problems().name ? id() + '-name-err' : null"
+    />
+    @if (problems().name; as problem) {
+    <p class="problem" [id]="id() + '-name-err'">{{ problem }}</p>
+    }
+  </div>
+
+  @if (pot() === null) {
+  <div class="field">
+    <label [for]="id() + '-kind'">What is it for?</label>
+    <select class="control" [id]="id() + '-kind'" (change)="onKind($event)">
+      @for (option of kinds; track option) {
+      <option [value]="option" [selected]="option === kind()">{{ kindLabels[option] }}</option>
+      }
+    </select>
+    <p class="hint">{{ kindHelp() }}</p>
+  </div>
+  }
+
+  <div class="field">
+    <label [for]="id() + '-target'">Target (₹), optional</label>
+    <input
+      class="control"
+      [id]="id() + '-target'"
+      type="text"
+      inputmode="decimal"
+      autocomplete="off"
+      placeholder="No target"
+      [value]="target()"
+      (input)="onTarget($event)"
+      [attr.aria-invalid]="problems().target ? 'true' : null"
+      [attr.aria-describedby]="problems().target ? id() + '-target-err' : null"
+    />
+    @if (problems().target; as problem) {
+    <p class="problem" [id]="id() + '-target-err'">{{ problem }}</p>
+    }
+  </div>
+
+  @if (kind() === 'bill') {
+  <div class="field">
+    <label [for]="id() + '-due'">Due date, optional</label>
+    <input
+      class="control"
+      [id]="id() + '-due'"
+      type="date"
+      [value]="due()"
+      (input)="onDue($event)"
+      [attr.aria-invalid]="problems().due ? 'true' : null"
+      [attr.aria-describedby]="problems().due ? id() + '-due-err' : null"
+    />
+    @if (problems().due; as problem) {
+    <p class="problem" [id]="id() + '-due-err'">{{ problem }}</p>
+    }
+  </div>
+  } @if (canPickCard()) {
+  <div class="field">
+    <label [for]="id() + '-card'">Pays a card bill, optional</label>
+    <select class="control" [id]="id() + '-card'" (change)="onCovers($event)">
+      <option value="">No card</option>
+      @for (card of cards(); track card.accountId) {
+      <option [value]="card.accountId">{{ card.name }}</option>
+      }
+    </select>
+    <p class="hint">
+      For a card, the larger of this pot and what the card owes is kept out of free-to-spend.
+    </p>
+  </div>
+  } @if (failure(); as text) {
+  <p class="problem" role="alert">{{ text }}</p>
+  }
+  <div class="actions">
+    <button ui-button variant="primary" type="submit" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : pot() === null ? 'Create pot' : 'Save' }}
+    </button>
+    <button ui-button variant="ghost" type="button" [disabled]="saving()" (click)="cancel.emit()">
+      Cancel
+    </button>
+  </div>
+</form>

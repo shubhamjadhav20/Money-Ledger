@@ -45,6 +45,7 @@ describe('App shell', () => {
       'Dashboard',
       'Transactions',
       'Import',
+      'Pots',
       'Gallery',
     ]);
     expect(query(nav, 'button').textContent.trim()).toBe('Disconnect');
@@ -87,7 +88,7 @@ describe('App shell', () => {
 });
 
 describe('Routing', () => {
-  it.each(['/', '/dashboard', '/transactions', '/import', '/nowhere'])(
+  it.each(['/', '/dashboard', '/transactions', '/import', '/pots', '/nowhere'])(
     '%s asks a signed-out visitor to connect',
     async (url) => {
       const { router } = setup();

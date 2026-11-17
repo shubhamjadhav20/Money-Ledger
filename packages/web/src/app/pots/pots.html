@@ -1,0 +1,127 @@
+<header class="top">
+  <h1>Pots</h1>
+  @if (store.state() === 'ready') {
+  <button
+    ui-button
+    variant="secondary"
+    type="button"
+    [attr.aria-expanded]="creating()"
+    (click)="toggleCreate()"
+  >
+    {{ creating() ? 'Close' : 'New pot' }}
+  </button>
+  }
+</header>
+
+<p class="muted intro">
+  A pot is money set aside for something. Safety buffers and bills are kept out of the free-to-spend
+  number on the Dashboard, so it only shows what is really yours to spend.
+</p>
+
+@switch (store.state()) { @case ('error') {
+<ui-state-message kind="error" title="Could not load your pots" [description]="store.error() ?? ''">
+  <button ui-button variant="primary" type="button" (click)="reload()">Try again</button>
+</ui-state-message>
+} @case ('ready') { @if (creating()) {
+<ui-card>
+  <h2>New pot</h2>
+  <app-pot-form
+    [cards]="store.cards()"
+    [saving]="store.saving()"
+    [failure]="store.saveError()"
+    (create)="onCreate($event)"
+    (cancel)="close()"
+  />
+</ui-card>
+} @if (store.pots().length === 0) {
+<ui-state-message
+  kind="empty"
+  title="No pots yet"
+  description="Make one for your safety buffer, or for a bill you are saving up for."
+/>
+} @else {
+<ul class="pots">
+  @for (pot of store.pots(); track pot.id) {
+  <li>
+    <ui-card>
+      <p class="label">
+        <span class="name">{{ pot.name }}</span> <ui-badge>{{ kindLabels[pot.kind] }}</ui-badge>
+      </p>
+      <ui-money [amount]="pot.balancePaise" size="lg" tone="neutral" />
+      @if (pot.targetPaise !== null) {
+      <p class="muted">of <ui-money [amount]="pot.targetPaise" tone="neutral" /> target</p>
+      <meter
+        min="0"
+        max="100"
+        [value]="percent(pot.balancePaise, pot.targetPaise)"
+        [attr.aria-label]="pot.name + ' funded'"
+      ></meter>
+      } @if (pot.dueDate !== null) {
+      <p class="muted">Due {{ formatDay(pot.dueDate) }}</p>
+      } @if (store.cardName(pot); as card) {
+      <p class="muted">Set aside for {{ card }}</p>
+      }
+      <div class="actions">
+        <button ui-chip type="button" [selected]="isOpen(pot, 'move')" (click)="open(pot, 'move')">
+          Move money
+        </button>
+        <button ui-chip type="button" [selected]="isOpen(pot, 'edit')" (click)="open(pot, 'edit')">
+          Edit
+        </button>
+        <button
+          ui-chip
+          type="button"
+          [selected]="isOpen(pot, 'history')"
+          (click)="open(pot, 'history')"
+        >
+          History
+        </button>
+      </div>
+
+      @if (isOpen(pot, 'move')) {
+      <app-pot-move
+        [pot]="pot"
+        [saving]="store.saving()"
+        [failure]="store.saveError()"
+        (move)="onMove(pot, $event)"
+        (cancel)="close()"
+      />
+      } @if (isOpen(pot, 'edit')) {
+      <app-pot-form
+        [pot]="pot"
+        [saving]="store.saving()"
+        [failure]="store.saveError()"
+        (edit)="onEdit(pot, $event)"
+        (cancel)="close()"
+      />
+      } @if (isOpen(pot, 'history')) { @let history = store.histories()[pot.id];
+      <section class="history" [attr.aria-label]="pot.name + ' history'">
+        @if (history === undefined || (history.state === 'loading' && history.items.length === 0)) {
+        <p class="muted">Loading history…</p>
+        } @else if (history.state === 'error' && history.items.length === 0) {
+        <p class="problem" role="alert">Could not load this pot's history.</p>
+        } @else if (history.items.length === 0) {
+        <p class="muted">Nothing has been moved in or out yet.</p>
+        } @else {
+        <ul class="lines">
+          @for (item of history.items; track item.id) {
+          <li>
+            <span
+              >{{ movementLabels[item.reason] }}<br /><small class="muted"
+                >{{ formatDay(item.date) }}</small
+              ></span
+            >
+            <ui-money [amount]="item.amountPaise" />
+          </li>
+          }
+        </ul>
+        }
+      </section>
+      }
+    </ui-card>
+  </li>
+  }
+</ul>
+} } @default {
+<ui-state-message kind="loading" title="Loading your pots" />
+} }
