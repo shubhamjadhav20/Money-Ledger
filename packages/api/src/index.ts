@@ -10,3 +10,7 @@ export * from './capture-service.ts';
 export * from './import-service.ts';
 export * from './app.ts';
 export * from './auth.ts';
+export * from './config.ts';
+export * from './server.ts';
+export * from './db/pg-client.ts';
+export * from './admin-cli.ts';

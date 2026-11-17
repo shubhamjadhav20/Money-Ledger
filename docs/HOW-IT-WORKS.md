@@ -4,9 +4,10 @@ A plain-language guide to the whole project. It is updated at the end of each mi
 always describes what exists today. For the plan and the decision log, see `PLAN.md`; for the
 rules Claude Code follows, see `CLAUDE.md`.
 
-**Status:** M0 to M3.5 (core logic), M4a (database, import, quick-add) and M4b-1 (HTTP API with
-scoped tokens and audit log) are built. The server entrypoint, the Angular app, MCP and the
-Telegram bot are not built yet (see section 10).
+**Status:** M0 to M3.5 (core logic), M4a (database, import, quick-add), M4b-1 (HTTP API with
+scoped tokens and audit log) and M4b-2a (a runnable server, admin command, production Postgres
+driver) are built. Pots, payday, free-to-spend routes, the Angular app, MCP and the Telegram bot are
+not built yet (see section 10).
 
 ## 1. What it is
 
@@ -183,7 +184,30 @@ database at the moment of commit.
 - **Headers.** `no-store`, `nosniff`, and a locked-down CSP are set by hand. `helmet`, CORS and
   cookie sessions arrive with the web app.
 
-## 9. Running and testing
+## 9. Running the server
+
+Needs a Postgres 16 database and its URL.
+
+```
+export DATABASE_URL=postgres://user:password@localhost:5432/ledger
+pnpm --filter @ledger/api admin add-account --id bank --name "Main bank" --kind bank
+pnpm --filter @ledger/api admin add-account --id cc --name "Card" --kind card --statement-day 5 --due-day 25
+pnpm --filter @ledger/api admin create-token --name laptop --scope full   # prints the secret ONCE
+pnpm --filter @ledger/api start                                           # 127.0.0.1:3000
+```
+
+- `HOST` (default `127.0.0.1`) and `PORT` (default `3000`) are optional. Loopback is the default
+  on purpose: put a reverse proxy or a private network in front before exposing it.
+- Migrations run automatically when the server (or the admin command) starts.
+- The admin command works on the server host only; there is no HTTP route that can create the
+  first token, so a stranger who finds the port cannot bootstrap access.
+- `SIGTERM`/`SIGINT` stop accepting connections, finish in-flight requests, then close the pool.
+- Configuration errors name the problem but never print the database URL (it contains a password).
+- `bigint` and `date` are parsed by the `pg` pool exactly as in the test client, and the driver is
+  tested against a real Postgres in CI (a service container) and locally when `TEST_DATABASE_URL`
+  points at a database whose name ends in `_test` (the suite recreates its schema).
+
+## 10. Running and testing
 
 ```
 pnpm install
@@ -195,17 +219,18 @@ pnpm check          # lint, format, typecheck, coverage tests, build (what CI ru
 Needs Node 24 (Angular 22 later needs 24.15+) and pnpm 12 via corepack. Fixtures are fake and
 generated; real statements are never committed (the repository is public, and gitleaks runs in CI).
 
-## 10. Not built yet
+## 11. Not built yet
 
-- M4b-2: server entrypoint (`pg`, config, migrations on start, a command to mint the first token), then pots, payday, `GET /free`, `/forecast`, `/simulate`, reconcile routes, `PATCH /transactions/:id`.
+- M4b-2b: pots, payday, `GET /free`, `/forecast`, `/simulate`, reconcile routes, `PATCH /transactions/:id` (needs new tables for pots and scheduled items).
 - Web login (argon2id, cookie session, CSRF) arrives with the Angular app.
 - M5: Angular app (dashboard, import with the ambiguity picker, reconcile, pots, PWA quick-add).
 - M6: local MCP server so Claude can answer "can I buy this on Slice in 3?" from your real numbers.
 - M7: public demo with generated data. M8: private deployment and the Telegram bot.
 
-## 11. Decisions worth remembering
+## 12. Decisions worth remembering
 
 - Postgres over MongoDB: relational integrity and real constraints suit money.
+- `pg` over postgres.js: it has the stock Kysely dialect and the widest tooling; no extra adapter code on the money path.
 - Kysely over an ORM: typed SQL you can read; no hidden queries.
 - PGlite for tests: real Postgres semantics without Docker, so tests run anywhere.
 - Strict matching by default (exact amount): a wrong merge hides a payment. Allow a small fee
