@@ -11,6 +11,8 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@ledger/core": "workspace:*"
+    "@electric-sql/pglite": "^0.5.16",
+    "@ledger/core": "workspace:*",
+    "kysely": "^0.29.9"
   }
 }
