@@ -29,9 +29,11 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 
 **Done:** M0 (scaffold), M1 (money, dates, CSV import, identity, categoriser, transfers, fixtures), M2 (reconcile), M3 (cycle, payday, pots, free-to-spend, forecast, simulate), M3.5 (kinds `investment`/`family`, `monthlySummary`, `parseCapture`, `matchStatement`/`findPendingDuplicates`). 269 tests; core coverage ~99.5% lines / ~90% branches (gate: 90 / 85).
 
-**Next: M4 (API).** Express + Postgres. Ask before choosing Kysely vs Drizzle and PGlite vs Testcontainers. API wiring to do: run `planImport` then `matchStatement` on fresh rows (hold ambiguous rows until the user chooses), apply merges in place (entry becomes `posted`, takes date/ref/identity), `POST /capture` uses `parseCapture`, seed the category rules so SIP/mummy become `investment`/`family`, summary endpoint uses `monthlySummary` with reconcile bundles.
+**M4a done (branch `feat/m4a-db-import`):** Kysely + PGlite database (`packages/api/src/db`: schema, migrations, dialect, client), `confirmImport`/`previewImport` (planImport -> matchStatement -> merge in place, ambiguity held, one transaction), `captureEntry`. Integration tests run on real in-memory Postgres. A plain-language guide lives in `docs/HOW-IT-WORKS.md`: keep it current at the end of each milestone.
 
-**Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
+**Next: M4b (HTTP).** Express + zod, `pg` for production (`PostgresDialect`), cookie-session login (argon2id), scoped tokens (`capture`/`read`/`full`), audit log, routes from PLAN.md section 6 (`POST /imports`, `/imports/confirm`, `/capture`, `GET /transactions`, `/free`, `/simulate`, summary). Ask before adding each dependency (express, zod, pg, argon2, helmet, pino) and state why.
+
+**Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
 
 **Decisions:** PLAN.md section 15 (decision log) is the source of truth; read it before changing domain behaviour.
 
