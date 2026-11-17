@@ -221,8 +221,8 @@ Verify the SDK's current registration API (`registerTool` vs older `tool`) and p
 - [x] Edge cases: tolerance (abs and %), date window, multiple candidates (ambiguous never auto-settled), no match, different counterparties.
 
 **M3 — Pots, payday, cycle, free-to-spend, forecast, simulate (days 5-6)**
-- [ ] All pure functions with table-driven tests; free-to-spend spec finalised.
-- [ ] Property tests (Σ allocations == input; each payment counted once).
+- [x] All pure functions with table-driven tests; free-to-spend spec finalised.
+- [x] Property tests (Σ allocations == input; each payment counted once).
 
 **M3.5 — Capture grammar + manual↔import matching, core only (day 7)**
 - [ ] Capture grammar: "20 food upi" → pending manual transaction (pure function).
@@ -324,6 +324,7 @@ Go/no-go first: re-read Anthropic's current terms. Only build `ClaudeCodeRunner`
 
 ## 15. Decision log
 
+- 2026-11-17 (M3): open reconcile bundles count as netted in burn (user decision). Free-to-spend reserves max(card-bill pot, card owed) per covered card, never both; buffer and due-by-payday bill pots reserve max(balance, target). Installment presets: only installments due by payday reduce free-to-spend now; fees go on installment 1. Daily burn rounds up, runway down. Payday percents are basis points of gross with largest-remainder rounding. PaydaySchedule (payday date) is separate from PaydayRule (waterfall).
 - 2026-11-17 (M2): reconcile links debit/credit by window + tolerance only; connected groups with exactly one complete pairing split into pair bundles, groups with several (interchangeable) pairings become one bundle, groups with none (or too large) go to review. A bundle auto-settles only if every pair has similar counterparties, otherwise it is `open` (golden case is open, net +₹5). Output: `bundles`, `unmatched` (review queue: ambiguous only), `singles` (no candidate). Transfers are excluded. Whether `open` bundles count as netted in free-to-spend is decided in M3.
 - 2026-11-16: Postgres instead of MongoDB (relational integrity, constraints, real transactions).
 - 2026-11-16: v1 includes the deterministic Telegram bot, built last (after local MCP and the public demo). SMS forwarding, hosted agent and hardening are v2.
