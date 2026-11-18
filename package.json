@@ -17,7 +17,9 @@
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm test:web && pnpm build",
     "fixtures": "node scripts/generate-fixtures.ts",
     "test:coverage": "vitest run --coverage",
-    "test:web": "pnpm --filter @ledger/web test"
+    "test:web": "pnpm --filter @ledger/web test",
+    "pdf:skeleton": "node scripts/pdf-skeleton.ts",
+    "pdf:fake": "node scripts/generate-fake-pdf.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

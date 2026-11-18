@@ -146,6 +146,19 @@ function buildLines(items: readonly PdfTextItem[]): Line[] {
   }));
 }
 
+/** A line of a page, top to bottom, as the table builder sees it. For tools that show the structure. */
+export interface PdfLine {
+  readonly page: number;
+  readonly y: number;
+  readonly height: number;
+  readonly cells: readonly { readonly x: number; readonly right: number; readonly text: string }[];
+}
+
+/** The lines of a PDF, page by page, top to bottom, with their cells left to right. */
+export function pdfLines(items: readonly PdfTextItem[]): PdfLine[] {
+  return buildLines(items);
+}
+
 /** The place of every column title on this line, or undefined if any title is missing. */
 function locateTitles(line: Line, columns: readonly PdfColumn[]): Anchor[] | undefined {
   const anchors: Anchor[] = [];

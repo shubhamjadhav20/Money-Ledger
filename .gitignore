@@ -34,3 +34,7 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 *.log
+
+# Generated fake PDFs (pnpm pdf:fake) are not byte-reproducible (random keys), so never commit them.
+fixtures/*-locked.pdf
+fixtures/*-open.pdf

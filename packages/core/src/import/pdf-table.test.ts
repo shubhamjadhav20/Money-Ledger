@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createCsvImporter } from './csv-importer.ts';
 import { FAKEBANK_SAVINGS } from './demo-mappings.ts';
-import { pdfTableToCsv, validatePdfLayout } from './pdf-table.ts';
+import { pdfLines, pdfTableToCsv, validatePdfLayout } from './pdf-table.ts';
 import type { PdfLayout, PdfTextItem } from './pdf-table.ts';
 
 // Geometry of a fake statement (PDF points; y grows upward). Text is 5 points wide per character.
@@ -278,6 +278,34 @@ describe('pdfTableToCsv()', () => {
     const { issues, rowCount } = pdfTableToCsv(items, layout);
     expect(rowCount).toBe(1);
     expect(issues).toHaveLength(1);
+  });
+});
+
+describe('pdfLines()', () => {
+  it('groups items into lines top to bottom, page by page, with their cells left to right', () => {
+    const lines = pdfLines([
+      item(2, 700, 40, 'second page'),
+      rightItem(1, 680, 450, '20.00'),
+      item(1, 680, 40, '01/11/2026'),
+      item(1, 700, 40, 'Title'),
+    ]);
+    expect(lines.map((l) => [l.page, l.y, l.cells.map((c) => c.text)])).toEqual([
+      [1, 700, ['Title']],
+      [1, 680, ['01/11/2026', '20.00']],
+      [2, 700, ['second page']],
+    ]);
+    const cell = lines[1]?.cells[1];
+    expect(cell?.right).toBe(450);
+    expect(cell?.x).toBe(425);
+  });
+
+  it('merges neighbouring words into one cell and keeps wide gaps as separate cells', () => {
+    const lines = pdfLines([
+      item(1, 700, 40, 'UPI/CHAI'),
+      item(1, 700, 82, 'POINT'),
+      item(1, 700, 300, 'REF'),
+    ]);
+    expect(lines[0]?.cells.map((c) => c.text)).toEqual(['UPI/CHAI POINT', 'REF']);
   });
 });
 
