@@ -183,6 +183,115 @@ export const decodeScheduled = (value: unknown): ScheduledView[] =>
     };
   });
 
+export const PAYDAY_WEEKENDS = ['none', 'previous-weekday'] as const;
+/** What happens when payday falls on a weekend: nothing, or it arrives the Friday before. */
+export type PaydayWeekend = (typeof PAYDAY_WEEKENDS)[number];
+
+export const CARD_EXPOSURES = ['all_outstanding', 'due_before_payday'] as const;
+/** Which card bills free-to-spend keeps out of reach: all of what is owed, or only what falls due first. */
+export type CardExposure = (typeof CARD_EXPOSURES)[number];
+
+export interface SettingsView {
+  /** Day of the month salary is due, 1 to 31. */
+  readonly paydayDay: number;
+  readonly paydayWeekend: PaydayWeekend;
+  readonly cardExposure: CardExposure;
+}
+
+export function decodeSettings(value: unknown): SettingsView {
+  const r = record(value, 'settings');
+  return {
+    paydayDay: int(r['paydayDay'], 'settings.paydayDay'),
+    paydayWeekend: oneOf(r['paydayWeekend'], PAYDAY_WEEKENDS, 'settings.paydayWeekend'),
+    cardExposure: oneOf(r['cardExposure'], CARD_EXPOSURES, 'settings.cardExposure'),
+  };
+}
+
+export const RULE_KINDS = ['fixed', 'percent', 'remainder'] as const;
+export type RuleKind = (typeof RULE_KINDS)[number];
+
+interface RuleBase {
+  readonly id: string;
+  readonly name: string;
+  /** The pot that receives this share; null leaves it with you. */
+  readonly potId: string | null;
+}
+
+/** One line of the payday split, as stored. Applied in order. */
+export type PaydayRuleView =
+  | (RuleBase & { readonly kind: 'fixed'; readonly amountPaise: Paise })
+  | (RuleBase & { readonly kind: 'percent'; readonly basisPoints: number })
+  | (RuleBase & { readonly kind: 'remainder' });
+
+export const decodePaydayRules = (value: unknown): PaydayRuleView[] =>
+  list(record(value, 'payday rules')['items'], 'payday rules.items').map((item) => {
+    const stored = record(item, 'payday rule');
+    const r = record(stored['rule'], 'payday rule.rule');
+    const base = {
+      id: text(stored['id'], 'rule.id'),
+      name: text(r['name'], 'rule.name'),
+      potId: nullable(r['potId'], (v) => text(v, 'rule.potId')),
+    };
+    const kind = oneOf(r['kind'], RULE_KINDS, 'rule.kind');
+    if (kind === 'fixed') {
+      return { ...base, kind, amountPaise: money(r['amountPaise'], 'rule.amountPaise') };
+    }
+    if (kind === 'percent') {
+      return { ...base, kind, basisPoints: int(r['basisPoints'], 'rule.basisPoints') };
+    }
+    return { ...base, kind };
+  });
+
+/** What one rule asked for and what it got. A shortfall means the salary ran out first. */
+export interface AllocationView {
+  readonly name: string;
+  readonly potId: string | null;
+  readonly kind: RuleKind;
+  readonly requestedPaise: Paise;
+  readonly allocatedPaise: Paise;
+  readonly shortfallPaise: Paise;
+}
+
+/** A salary split by the rules. Everything allocated plus `unallocatedPaise` is the salary. */
+export interface PaydaySplitView {
+  readonly allocations: readonly AllocationView[];
+  readonly unallocatedPaise: Paise;
+}
+
+export function decodePaydaySplit(value: unknown): PaydaySplitView {
+  const r = record(value, 'payday split');
+  return {
+    allocations: list(r['allocations'], 'split.allocations').map((item) => {
+      const a = record(item, 'allocation');
+      return {
+        name: text(a['name'], 'allocation.name'),
+        potId: nullable(a['potId'], (v) => text(v, 'allocation.potId')),
+        kind: oneOf(a['kind'], RULE_KINDS, 'allocation.kind'),
+        requestedPaise: money(a['requestedPaise'], 'allocation.requestedPaise'),
+        allocatedPaise: money(a['allocatedPaise'], 'allocation.allocatedPaise'),
+        shortfallPaise: money(a['shortfallPaise'], 'allocation.shortfallPaise'),
+      };
+    }),
+    unallocatedPaise: money(r['unallocatedPaise'], 'split.unallocatedPaise'),
+  };
+}
+
+/** What applying a payday did. `replayed` means the same run was already applied: nothing changed. */
+export interface PaydayOutcomeView {
+  readonly runId: string;
+  readonly replayed: boolean;
+  readonly result: PaydaySplitView;
+}
+
+export function decodePaydayOutcome(value: unknown): PaydayOutcomeView {
+  const r = record(value, 'payday outcome');
+  return {
+    runId: text(r['runId'], 'outcome.runId'),
+    replayed: flag(r['replayed'], 'outcome.replayed'),
+    result: decodePaydaySplit(r['result']),
+  };
+}
+
 export type TxStatus = 'pending' | 'posted';
 export type TxSource = 'manual' | 'import' | 'sms';
 

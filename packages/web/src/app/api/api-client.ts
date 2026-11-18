@@ -12,11 +12,15 @@ import {
   decodeImportPlan,
   decodeMissing,
   decodeCreatedId,
+  decodePaydayOutcome,
+  decodePaydayRules,
+  decodePaydaySplit,
   decodePot,
   decodePotMovements,
   decodePots,
   decodeReconcile,
   decodeScheduled,
+  decodeSettings,
   decodeSummary,
   decodeTransaction,
   decodeTransactions,
@@ -29,15 +33,21 @@ import type {
   ImportOutcomeView,
   ImportPlanView,
   MissingAccount,
+  PaydayOutcomeView,
+  PaydayRuleView,
+  PaydaySplitView,
+  PaydayWeekend,
+  CardExposure,
   PotMovementView,
   PotView,
   ReconcileView,
   ScheduledView,
+  SettingsView,
   SummaryView,
   TransactionView,
   TxStatus,
 } from './models';
-import type { LocalDate, Paise, TxKind } from '@ledger/core';
+import type { LocalDate, Paise, PaydayRule, TxKind } from '@ledger/core';
 
 /** A failed API call, in the API's own `{ code, message }` terms. `status` 0 means unreachable. */
 export class ApiError extends Error {
@@ -84,6 +94,21 @@ export interface PotChange {
 export interface PotMovementInput {
   readonly amountPaise: Paise;
   readonly reason: 'spend' | 'trueup' | 'manual';
+}
+
+/** What may change in the settings. Anything left out stays as it is. */
+export interface SettingsChange {
+  readonly paydayDay?: number;
+  readonly paydayWeekend?: PaydayWeekend;
+  readonly cardExposure?: CardExposure;
+}
+
+/** A bill or outflow that repeats on a day of the month, or happens once on a date (not both). */
+export interface ScheduledInput {
+  readonly name: string;
+  readonly amountPaise: Paise;
+  readonly date?: LocalDate;
+  readonly monthlyDay?: number;
 }
 
 /** Only what the API allows to change on an existing transaction. `null` clears the category. */
@@ -134,7 +159,7 @@ export class ApiClient {
   private readonly auth = inject(AuthStore);
 
   private async request<T>(
-    method: 'GET' | 'POST' | 'PATCH',
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
     path: string,
     decode: (body: unknown) => T,
     options: { body?: unknown; params?: Record<string, string | number> } = {},
@@ -207,6 +232,52 @@ export class ApiClient {
 
   scheduled(): Promise<ScheduledView[]> {
     return this.request('GET', '/scheduled', decodeScheduled);
+  }
+
+  /** Needs a full-access token. Returns the new item's id. */
+  addScheduled(input: ScheduledInput): Promise<string> {
+    return this.request('POST', '/scheduled', decodeCreatedId, { body: input });
+  }
+
+  /** Needs a full-access token. Removing an item cannot be undone. */
+  async deleteScheduled(id: string): Promise<void> {
+    await this.request('DELETE', `/scheduled/${encodeURIComponent(id)}`, () => undefined);
+  }
+
+  settings(): Promise<SettingsView> {
+    return this.request('GET', '/settings', decodeSettings);
+  }
+
+  /** Needs a full-access token. Returns the settings as they are now. */
+  updateSettings(change: SettingsChange): Promise<SettingsView> {
+    return this.request('PATCH', '/settings', decodeSettings, { body: change });
+  }
+
+  /** The payday split, in the order it is applied. */
+  paydayRules(): Promise<PaydayRuleView[]> {
+    return this.request('GET', '/payday/rules', decodePaydayRules);
+  }
+
+  /** Needs a full-access token. Replaces the whole list; returns it as stored. */
+  setPaydayRules(rules: readonly PaydayRule[]): Promise<PaydayRuleView[]> {
+    return this.request('PUT', '/payday/rules', decodePaydayRules, { body: { rules } });
+  }
+
+  /** How a salary would be split by the saved rules. Changes nothing. */
+  previewPayday(amountPaise: Paise): Promise<PaydaySplitView> {
+    return this.request('POST', '/payday/preview', decodePaydaySplit, { body: { amountPaise } });
+  }
+
+  /**
+   * Needs a full-access token. Puts the split into the pots. `runId` is the safety key: sending the
+   * same run again changes nothing and comes back with `replayed: true`. The date is today, set by
+   * the server.
+   */
+  applyPayday(input: {
+    readonly runId: string;
+    readonly amountPaise: Paise;
+  }): Promise<PaydayOutcomeView> {
+    return this.request('POST', '/payday/apply', decodePaydayOutcome, { body: input });
   }
 
   balances(): Promise<AccountBalanceView[]> {

@@ -5,7 +5,15 @@
  */
 import type { ApiClient, FreeResult, ImportRequest } from './app/api/api-client';
 import { parseLocalDate, paise } from '@ledger/core';
-import type { CapturedView, ImportPlanView } from './app/api/models';
+import type {
+  CapturedView,
+  ImportPlanView,
+  PaydayOutcomeView,
+  PaydaySplitView,
+  PaydayRuleView,
+  ScheduledView,
+  SettingsView,
+} from './app/api/models';
 import { must } from './testing';
 import {
   decodeBalances,
@@ -13,11 +21,15 @@ import {
   decodeFree,
   decodeImportOutcome,
   decodeImportPlan,
+  decodePaydayOutcome,
+  decodePaydayRules,
+  decodePaydaySplit,
   decodePot,
   decodePotMovements,
   decodePots,
   decodeReconcile,
   decodeScheduled,
+  decodeSettings,
   decodeSummary,
   decodeTransactions,
 } from './app/api/models';
@@ -268,6 +280,59 @@ export const SCHEDULED_JSON = {
   ],
 };
 
+export const SETTINGS_JSON = {
+  paydayDay: 7,
+  paydayWeekend: 'previous-weekday',
+  cardExposure: 'all_outstanding',
+};
+
+/** A split that uses every kind of rule: a fixed bill, a share of the salary, and "the rest". */
+export const PAYDAY_RULES_JSON = {
+  items: [
+    {
+      id: 'r-1',
+      rule: { name: 'Emergency buffer', kind: 'fixed', amountPaise: 500_000, potId: 'pot-buffer' },
+    },
+    { id: 'r-2', rule: { name: 'Investing', kind: 'percent', basisPoints: 2_000 } },
+    { id: 'r-3', rule: { name: 'Spending', kind: 'remainder' } },
+  ],
+};
+
+/** What 80,000 rupees looks like through those rules (the buffer gets 5,000, investing 16,000). */
+export const PAYDAY_SPLIT_JSON = {
+  allocations: [
+    {
+      name: 'Emergency buffer',
+      potId: 'pot-buffer',
+      kind: 'fixed',
+      requestedPaise: 500_000,
+      allocatedPaise: 500_000,
+      shortfallPaise: 0,
+    },
+    {
+      name: 'Investing',
+      kind: 'percent',
+      requestedPaise: 1_600_000,
+      allocatedPaise: 1_600_000,
+      shortfallPaise: 0,
+    },
+    {
+      name: 'Spending',
+      kind: 'remainder',
+      requestedPaise: 5_900_000,
+      allocatedPaise: 5_900_000,
+      shortfallPaise: 0,
+    },
+  ],
+  unallocatedPaise: 0,
+};
+
+export const PAYDAY_OUTCOME_JSON = {
+  runId: 'run-1',
+  replayed: false,
+  result: PAYDAY_SPLIT_JSON,
+};
+
 export const MISSING_JSON = [{ accountId: 'acc-card', name: 'ICICI card' }];
 
 export const TRANSACTIONS_JSON = {
@@ -462,7 +527,11 @@ export const FREE = decodeFree(FREE_JSON);
 export const FORECAST = decodeForecast(FORECAST_JSON);
 export const POTS = decodePots(POTS_JSON);
 export const decodePotFixture = decodePot;
-export const SCHEDULED = decodeScheduled(SCHEDULED_JSON);
+export const SCHEDULED: ScheduledView[] = decodeScheduled(SCHEDULED_JSON);
+export const SETTINGS: SettingsView = decodeSettings(SETTINGS_JSON);
+export const PAYDAY_RULES: PaydayRuleView[] = decodePaydayRules(PAYDAY_RULES_JSON);
+export const PAYDAY_SPLIT: PaydaySplitView = decodePaydaySplit(PAYDAY_SPLIT_JSON);
+export const PAYDAY_OUTCOME: PaydayOutcomeView = decodePaydayOutcome(PAYDAY_OUTCOME_JSON);
 export const MOVEMENTS = decodePotMovements(MOVEMENTS_JSON);
 export const RECONCILE = decodeReconcile(RECONCILE_JSON);
 export const BALANCES = decodeBalances(BALANCES_JSON);
@@ -484,6 +553,14 @@ export type Api = Pick<
   | 'reconcile'
   | 'addPotMovement'
   | 'scheduled'
+  | 'addScheduled'
+  | 'deleteScheduled'
+  | 'settings'
+  | 'updateSettings'
+  | 'paydayRules'
+  | 'setPaydayRules'
+  | 'previewPayday'
+  | 'applyPayday'
   | 'balances'
   | 'recordBalance'
   | 'transactions'
@@ -535,6 +612,18 @@ export function fakeApi(over: Partial<Api> = {}) {
     addPotMovement: vi.fn(over.addPotMovement ?? (() => Promise.resolve())),
     reconcile: vi.fn(over.reconcile ?? (() => Promise.resolve(RECONCILE))),
     scheduled: vi.fn(over.scheduled ?? (() => Promise.resolve(SCHEDULED))),
+    addScheduled: vi.fn(over.addScheduled ?? (() => Promise.resolve('s-new'))),
+    deleteScheduled: vi.fn(over.deleteScheduled ?? (() => Promise.resolve())),
+    settings: vi.fn(over.settings ?? (() => Promise.resolve(SETTINGS))),
+    updateSettings: vi.fn(
+      over.updateSettings ?? ((change) => Promise.resolve({ ...SETTINGS, ...change })),
+    ),
+    paydayRules: vi.fn(over.paydayRules ?? (() => Promise.resolve(PAYDAY_RULES))),
+    setPaydayRules: vi.fn(over.setPaydayRules ?? (() => Promise.resolve(PAYDAY_RULES))),
+    previewPayday: vi.fn(over.previewPayday ?? (() => Promise.resolve(PAYDAY_SPLIT))),
+    applyPayday: vi.fn(
+      over.applyPayday ?? ((input) => Promise.resolve({ ...PAYDAY_OUTCOME, runId: input.runId })),
+    ),
     balances: vi.fn(over.balances ?? (() => Promise.resolve(BALANCES))),
     recordBalance: vi.fn(over.recordBalance ?? (() => Promise.resolve())),
     transactions: vi.fn(over.transactions ?? (() => Promise.resolve(TRANSACTIONS))),

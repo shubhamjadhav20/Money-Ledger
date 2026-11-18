@@ -12,9 +12,13 @@ import {
   IMPORT_PLAN_JSON,
   MISSING_JSON,
   MOVEMENTS_JSON,
+  PAYDAY_OUTCOME_JSON,
+  PAYDAY_RULES_JSON,
+  PAYDAY_SPLIT_JSON,
   POTS_JSON,
   RECONCILE_JSON,
   SCHEDULED_JSON,
+  SETTINGS_JSON,
   SUMMARY_JSON,
   TRANSACTIONS_JSON,
 } from '../../testing-api';
@@ -411,6 +415,86 @@ describe('ApiClient', () => {
       const result = api.previewImport(request);
       backend
         .expectOne('/api/imports')
+        .flush(
+          { code: 'forbidden', message: 'needs full' },
+          { status: 403, statusText: 'Forbidden' },
+        );
+      expect((await failure(result)).status).toBe(403);
+      expect(auth.connected()).toBe(true);
+    });
+  });
+
+  describe('payday, settings and scheduled', () => {
+    it('reads the settings and changes only what it is given', async () => {
+      const read = api.settings();
+      backend.expectOne('/api/settings').flush(SETTINGS_JSON);
+      expect((await read).paydayDay).toBe(7);
+
+      const write = api.updateSettings({ paydayDay: 5 });
+      const call = backend.expectOne('/api/settings');
+      expect(call.request.method).toBe('PATCH');
+      expect(call.request.body).toEqual({ paydayDay: 5 });
+      call.flush({ ...SETTINGS_JSON, paydayDay: 5 });
+      expect((await write).paydayDay).toBe(5);
+    });
+
+    it('reads the rules, and replaces them with a PUT of the whole list', async () => {
+      const read = api.paydayRules();
+      backend.expectOne('/api/payday/rules').flush(PAYDAY_RULES_JSON);
+      expect(await read).toHaveLength(3);
+
+      const rules = [{ kind: 'remainder', name: 'Spending' }] as const;
+      const write = api.setPaydayRules(rules);
+      const call = backend.expectOne('/api/payday/rules');
+      expect(call.request.method).toBe('PUT');
+      expect(call.request.body).toEqual({ rules });
+      call.flush({ items: [PAYDAY_RULES_JSON.items[2]] });
+      expect(await write).toHaveLength(1);
+    });
+
+    it('previews a salary with a POST and changes nothing', async () => {
+      const result = api.previewPayday(paise(8_000_000));
+      const call = backend.expectOne('/api/payday/preview');
+      expect(call.request.method).toBe('POST');
+      expect(call.request.body).toEqual({ amountPaise: 8_000_000 });
+      call.flush(PAYDAY_SPLIT_JSON);
+      expect((await result).allocations).toHaveLength(3);
+    });
+
+    it('applies a payday with its run id and leaves the date to the server', async () => {
+      const result = api.applyPayday({ runId: 'run-1', amountPaise: paise(8_000_000) });
+      const call = backend.expectOne('/api/payday/apply');
+      expect(call.request.method).toBe('POST');
+      expect(call.request.body).toEqual({ runId: 'run-1', amountPaise: 8_000_000 });
+      call.flush(PAYDAY_OUTCOME_JSON, { status: 201, statusText: 'Created' });
+      expect((await result).replayed).toBe(false);
+    });
+
+    it('adds a scheduled item and returns its id', async () => {
+      const result = api.addScheduled({
+        name: 'Rent',
+        amountPaise: paise(2_500_000),
+        monthlyDay: 1,
+      });
+      const call = backend.expectOne('/api/scheduled');
+      expect(call.request.method).toBe('POST');
+      expect(call.request.body).toEqual({ name: 'Rent', amountPaise: 2_500_000, monthlyDay: 1 });
+      call.flush({ id: 's-new' }, { status: 201, statusText: 'Created' });
+      expect(await result).toBe('s-new');
+    });
+
+    it('removes a scheduled item with a DELETE, and keeps an odd id out of the URL', async () => {
+      const result = api.deleteScheduled('s/1 x');
+      const call = backend.expectOne('/api/scheduled/s%2F1%20x');
+      expect(call.request.method).toBe('DELETE');
+      call.flush(null, { status: 204, statusText: 'No Content' });
+      await expect(result).resolves.toBeUndefined();
+    });
+
+    it('says when a read-only token tries to apply a payday', async () => {
+      const result = api.applyPayday({ runId: 'run-2', amountPaise: paise(100) });
+      backend
+        .expectOne('/api/payday/apply')
         .flush(
           { code: 'forbidden', message: 'needs full' },
           { status: 403, statusText: 'Forbidden' },
