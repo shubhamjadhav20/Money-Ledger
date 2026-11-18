@@ -1,0 +1,53 @@
+<form (submit)="$event.preventDefault(); submit()" novalidate>
+  <div class="field">
+    <label for="ps-day">Payday, day of the month</label>
+    <input
+      class="control narrow"
+      id="ps-day"
+      type="text"
+      inputmode="numeric"
+      autocomplete="off"
+      maxlength="2"
+      [value]="day()"
+      (input)="onDay($event)"
+      [attr.aria-invalid]="problem() ? 'true' : null"
+      [attr.aria-describedby]="problem() ? 'ps-day-err' : null"
+    />
+    @if (problem(); as text) {
+    <p class="problem" id="ps-day-err">{{ text }}</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="ps-weekend">When that day is a weekend, pay arrives</label>
+    <select class="control" id="ps-weekend" (change)="onWeekend($event)">
+      @for (option of weekends; track option) {
+      <option [value]="option" [selected]="option === weekend()">
+        {{ weekendLabels[option] }}
+      </option>
+      }
+    </select>
+    <p class="hint">"The Monday after" is not an option yet.</p>
+  </div>
+
+  <div class="field">
+    <label for="ps-exposure">Card bills kept out of free-to-spend</label>
+    <select class="control" id="ps-exposure" (change)="onExposure($event)">
+      @for (option of exposures; track option) {
+      <option [value]="option" [selected]="option === exposure()">
+        {{ exposureLabels[option] }}
+      </option>
+      }
+    </select>
+    <p class="hint">{{ exposureHelp() }}</p>
+  </div>
+
+  @if (failure(); as text) {
+  <p class="problem" role="alert">{{ text }}</p>
+  }
+  <div class="actions">
+    <button ui-button variant="primary" type="submit" [disabled]="saving() || !changed()">
+      {{ saving() ? 'Saving…' : 'Save settings' }}
+    </button>
+  </div>
+</form>

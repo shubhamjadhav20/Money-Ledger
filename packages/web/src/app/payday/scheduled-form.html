@@ -1,0 +1,92 @@
+<form (submit)="$event.preventDefault(); submit()" novalidate>
+  <div class="field">
+    <label for="sch-name">Name</label>
+    <input
+      class="control"
+      id="sch-name"
+      type="text"
+      maxlength="60"
+      autocomplete="off"
+      [value]="name()"
+      (input)="onText(name, $event)"
+      [attr.aria-invalid]="problems().name ? 'true' : null"
+      [attr.aria-describedby]="problems().name ? 'sch-name-err' : null"
+    />
+    @if (problems().name; as problem) {
+    <p class="problem" id="sch-name-err">{{ problem }}</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="sch-amount">Amount (₹)</label>
+    <input
+      class="control"
+      id="sch-amount"
+      type="text"
+      inputmode="decimal"
+      autocomplete="off"
+      [value]="amount()"
+      (input)="onText(amount, $event)"
+      [attr.aria-invalid]="problems().amount ? 'true' : null"
+      [attr.aria-describedby]="problems().amount ? 'sch-amount-err' : null"
+    />
+    @if (problems().amount; as problem) {
+    <p class="problem" id="sch-amount-err">{{ problem }}</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="sch-repeat">How often</label>
+    <select class="control" id="sch-repeat" (change)="onRepeat($event)">
+      <option value="monthly" [selected]="repeat() === 'monthly'">Every month</option>
+      <option value="once" [selected]="repeat() === 'once'">Once</option>
+    </select>
+  </div>
+
+  @if (repeat() === 'monthly') {
+  <div class="field">
+    <label for="sch-day">Day of the month</label>
+    <input
+      class="control narrow"
+      id="sch-day"
+      type="text"
+      inputmode="numeric"
+      autocomplete="off"
+      maxlength="2"
+      [value]="day()"
+      (input)="onText(day, $event)"
+      [attr.aria-invalid]="problems().day ? 'true' : null"
+      [attr.aria-describedby]="problems().day ? 'sch-day-err' : null"
+    />
+    @if (problems().day; as problem) {
+    <p class="problem" id="sch-day-err">{{ problem }}</p>
+    }
+  </div>
+  } @else {
+  <div class="field">
+    <label for="sch-date">Date</label>
+    <input
+      class="control"
+      id="sch-date"
+      type="date"
+      [value]="date()"
+      (input)="onText(date, $event)"
+      [attr.aria-invalid]="problems().date ? 'true' : null"
+      [attr.aria-describedby]="problems().date ? 'sch-date-err' : null"
+    />
+    @if (problems().date; as problem) {
+    <p class="problem" id="sch-date-err">{{ problem }}</p>
+    }
+  </div>
+  } @if (failure(); as text) {
+  <p class="problem" role="alert">{{ text }}</p>
+  }
+  <div class="actions">
+    <button ui-button variant="primary" type="submit" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Add' }}
+    </button>
+    <button ui-button variant="ghost" type="button" [disabled]="saving()" (click)="cancel.emit()">
+      Cancel
+    </button>
+  </div>
+</form>

@@ -1,0 +1,144 @@
+<form (submit)="$event.preventDefault(); submit()" novalidate>
+  @if (rows().length === 0) {
+  <p class="muted">
+    No split yet. Add a line for each place your salary goes first, for example a fixed amount into
+    your buffer, then "whatever is left" for spending.
+  </p>
+  } @else {
+  <ol class="rows">
+    @for (row of rows(); track row.key; let i = $index; let last = $last) {
+    <li class="row">
+      <div class="field">
+        <label [for]="'rule-' + row.key + '-name'">Name</label>
+        <input
+          class="control"
+          [id]="'rule-' + row.key + '-name'"
+          type="text"
+          maxlength="60"
+          autocomplete="off"
+          [value]="row.name"
+          (input)="text(i, 'name', $event)"
+          [attr.aria-invalid]="problems()[row.key] ? 'true' : null"
+          [attr.aria-describedby]="problems()[row.key] ? 'rule-' + row.key + '-err' : null"
+        />
+      </div>
+
+      <div class="field">
+        <label [for]="'rule-' + row.key + '-kind'">Takes</label>
+        <select class="control" [id]="'rule-' + row.key + '-kind'" (change)="kind(i, $event)">
+          @for (option of kinds; track option) {
+          <option [value]="option" [selected]="option === row.kind">
+            {{ kindLabels[option] }}
+          </option>
+          }
+        </select>
+      </div>
+
+      @if (row.kind === 'fixed') {
+      <div class="field">
+        <label [for]="'rule-' + row.key + '-amount'">Amount (₹)</label>
+        <input
+          class="control"
+          [id]="'rule-' + row.key + '-amount'"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          [value]="row.amount"
+          (input)="text(i, 'amount', $event)"
+          [attr.aria-invalid]="problems()[row.key] ? 'true' : null"
+          [attr.aria-describedby]="problems()[row.key] ? 'rule-' + row.key + '-err' : null"
+        />
+      </div>
+      } @else if (row.kind === 'percent') {
+      <div class="field">
+        <label [for]="'rule-' + row.key + '-percent'">Share (%)</label>
+        <input
+          class="control"
+          [id]="'rule-' + row.key + '-percent'"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          [value]="row.percent"
+          (input)="text(i, 'percent', $event)"
+          [attr.aria-invalid]="problems()[row.key] ? 'true' : null"
+          [attr.aria-describedby]="problems()[row.key] ? 'rule-' + row.key + '-err' : null"
+        />
+      </div>
+      }
+
+      <div class="field">
+        <label [for]="'rule-' + row.key + '-pot'">Goes to</label>
+        <select
+          class="control"
+          [id]="'rule-' + row.key + '-pot'"
+          (change)="text(i, 'potId', $event)"
+        >
+          <option value="" [selected]="row.potId === ''">Stays with me</option>
+          @for (pot of pots(); track pot.id) {
+          <option [value]="pot.id" [selected]="pot.id === row.potId">{{ pot.name }}</option>
+          }
+        </select>
+      </div>
+
+      @if (problems()[row.key]; as problem) {
+      <p class="problem wide" [id]="'rule-' + row.key + '-err'">{{ problem }}</p>
+      }
+
+      <div class="tools wide">
+        <button
+          ui-button
+          variant="ghost"
+          type="button"
+          [disabled]="i === 0"
+          [attr.aria-label]="'Move ' + (row.name || 'this line') + ' up'"
+          (click)="move(i, -1)"
+        >
+          Up
+        </button>
+        <button
+          ui-button
+          variant="ghost"
+          type="button"
+          [disabled]="last"
+          [attr.aria-label]="'Move ' + (row.name || 'this line') + ' down'"
+          (click)="move(i, 1)"
+        >
+          Down
+        </button>
+        <button
+          ui-button
+          variant="danger"
+          type="button"
+          [attr.aria-label]="'Remove ' + (row.name || 'this line')"
+          (click)="remove(i)"
+        >
+          Remove
+        </button>
+      </div>
+    </li>
+    }
+  </ol>
+  } @if (shareTotal(); as total) {
+  <p class="hint">Shares add up to {{ total }}% of the salary.</p>
+  } @if (general().length > 0) {
+  <ul class="problem" role="alert">
+    @for (message of general(); track message) {
+    <li>{{ message }}</li>
+    }
+  </ul>
+  } @if (failure(); as text) {
+  <p class="problem" role="alert">{{ text }}</p>
+  }
+
+  <div class="actions">
+    <button ui-button variant="secondary" type="button" [disabled]="saving()" (click)="add()">
+      Add a line
+    </button>
+    <button ui-button variant="primary" type="submit" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Save split' }}
+    </button>
+    <button ui-button variant="ghost" type="button" [disabled]="saving()" (click)="revert()">
+      Undo changes
+    </button>
+  </div>
+</form>

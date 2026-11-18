@@ -28,5 +28,6 @@ export const PROTECTED_PREFIXES = [
   '/import',
   '/reconcile',
   '/pots',
+  '/payday',
   '/quick-add',
 ] as const;

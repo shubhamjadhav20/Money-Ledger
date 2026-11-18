@@ -43,6 +43,7 @@ const ICONS = [
   'upload',
   'match',
   'pots',
+  'payday',
   'plus',
   'logout',
   'left',
