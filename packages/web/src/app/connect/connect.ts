@@ -32,6 +32,13 @@ export class Connect {
       await this.api.checkToken();
       await this.router.navigateByUrl('/dashboard');
     } catch (error) {
+      if (error instanceof ApiError && error.status === 403) {
+        // The token is known but may not read: that is exactly a capture-scope token (read and
+        // full tokens pass the check above). It can add quick entries and nothing else.
+        this.auth.connect(token, { captureOnly: true });
+        await this.router.navigateByUrl('/quick-add');
+        return;
+      }
       this.auth.disconnect();
       this.problem.set(
         error instanceof ApiError && error.status === 401

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { CURRENT_MONTH, formatMonth, monthRange, shiftMonth } from './month';
+import { CURRENT_MONTH, TODAY, formatMonth, monthRange, shiftMonth } from './month';
 
 describe('month helpers', () => {
   it('gives the first and last day of a month, leap years included', () => {
@@ -30,5 +30,13 @@ describe('month helpers', () => {
 
   it('opens on the current month in India by default', () => {
     expect(TestBed.inject(CURRENT_MONTH)).toMatch(/^\d{4}-(0[1-9]|1[0-2])$/);
+  });
+});
+
+describe('TODAY', () => {
+  it('is a calendar date in the current month in India', () => {
+    const today = TestBed.inject(TODAY);
+    expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(today.startsWith(TestBed.inject(CURRENT_MONTH))).toBe(true);
   });
 });

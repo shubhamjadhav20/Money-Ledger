@@ -5,6 +5,7 @@ import { parseLocalDate, paise } from '@ledger/core';
 import { must } from '../../testing';
 import {
   BALANCES_JSON,
+  CAPTURE_JSON,
   FORECAST_JSON,
   FREE_JSON,
   IMPORT_OUTCOME_JSON,
@@ -242,6 +243,40 @@ describe('ApiClient', () => {
       expect(request.request.url).toBe('/api/transactions/a%2Fb%3Fc');
       request.flush({ error: 'x' }, { status: 404, statusText: 'Not Found' });
       expect((await failure(result)).status).toBe(404);
+    });
+  });
+
+  describe('quick-add', () => {
+    it('posts the text, without an account when none is given, and decodes the entry', async () => {
+      const result = api.capture('450 dinner upi');
+      const request = backend.expectOne('/api/capture');
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual({ text: '450 dinner upi' });
+      expect(request.request.headers.get('Authorization')).toBe('Bearer tok');
+      request.flush(CAPTURE_JSON, { status: 201, statusText: 'Created' });
+      expect(await result).toMatchObject({ id: 'cap-1', amountPaise: -45_000, status: 'pending' });
+    });
+
+    it('sends the account when one is chosen', async () => {
+      const result = api.capture('450 dinner upi', 'acc-bank');
+      const request = backend.expectOne('/api/capture');
+      expect(request.request.body).toEqual({ text: '450 dinner upi', accountId: 'acc-bank' });
+      request.flush(CAPTURE_JSON, { status: 201, statusText: 'Created' });
+      await result;
+    });
+
+    it('carries the server reason when the text is refused', async () => {
+      const result = failure(api.capture('dinner'));
+      backend.expectOne('/api/capture').flush(
+        {
+          code: 'invalid_capture',
+          message: 'Missing amount: start with a number, e.g. "20 food upi"',
+        },
+        { status: 422, statusText: 'Unprocessable Entity' },
+      );
+      const error = await result;
+      expect([error.status, error.code]).toEqual([422, 'invalid_capture']);
+      expect(error.message).toContain('Missing amount');
     });
   });
 

@@ -5,6 +5,7 @@ import { API_PREFIX, AuthStore } from './auth';
 import { DecodeError, record } from './decode';
 import {
   decodeBalances,
+  decodeCaptured,
   decodeForecast,
   decodeFree,
   decodeImportOutcome,
@@ -22,6 +23,7 @@ import {
 } from './models';
 import type {
   AccountBalanceView,
+  CapturedView,
   ForecastView,
   FreeView,
   ImportOutcomeView,
@@ -240,6 +242,16 @@ export class ApiClient {
   updateTransaction(id: string, change: TransactionChange): Promise<TransactionView> {
     return this.request('PATCH', `/transactions/${encodeURIComponent(id)}`, decodeTransaction, {
       body: change,
+    });
+  }
+
+  /**
+   * Quick-add: saves one pending entry from the grammar text ("450 dinner upi"). Needs a capture
+   * or full token. The server reads the text again, so what comes back is what was stored.
+   */
+  capture(text: string, accountId?: string): Promise<CapturedView> {
+    return this.request('POST', '/capture', decodeCaptured, {
+      body: { text, ...(accountId === undefined ? {} : { accountId }) },
     });
   }
 

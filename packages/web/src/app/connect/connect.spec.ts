@@ -74,6 +74,24 @@ describe('Connect', () => {
     expect(auth.connected()).toBe(false);
   });
 
+  it('a token that may not read is a capture-only token: it opens quick-add and nothing else', async () => {
+    const { auth, navigate, root, submit } = await render({
+      checkToken: () =>
+        Promise.reject(new ApiError(403, 'forbidden', 'This token cannot use this endpoint')),
+    });
+    await submit('capture-token');
+    expect(auth.bearer()).toBe('capture-token');
+    expect(auth.captureOnly()).toBe(true);
+    expect(navigate).toHaveBeenCalledWith('/quick-add');
+    expect(root.querySelector('[role=alert]')).toBeNull();
+  });
+
+  it('a token that can read is not capture-only', async () => {
+    const { auth, submit } = await render();
+    await submit('full-token');
+    expect(auth.captureOnly()).toBe(false);
+  });
+
   it('never prints the token on screen', async () => {
     const { root, submit } = await render({
       checkToken: () => Promise.reject(new ApiError(401, 'unauthorized', 'Bad token')),

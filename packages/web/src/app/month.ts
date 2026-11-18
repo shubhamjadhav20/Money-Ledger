@@ -1,5 +1,5 @@
 import { InjectionToken } from '@angular/core';
-import { daysInMonth, localDate } from '@ledger/core';
+import { daysInMonth, localDate, parseLocalDate } from '@ledger/core';
 import type { LocalDate } from '@ledger/core';
 
 const MONTH = /^(\d{4})-(0[1-9]|1[0-2])$/;
@@ -50,5 +50,29 @@ export const CURRENT_MONTH = new InjectionToken<string>('CURRENT_MONTH', {
       kolkata.formatToParts(new Date()).map((p) => [p.type, p.value]),
     );
     return `${String(found['year'])}-${String(found['month'])}`;
+  },
+});
+
+const kolkataDay = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: 'Asia/Kolkata',
+});
+
+/**
+ * Today in India. Only the quick-add preview uses it, to read "yesterday"; the server works out
+ * the date that is stored. Tests replace it.
+ */
+export const TODAY = new InjectionToken<LocalDate>('TODAY', {
+  providedIn: 'root',
+  factory: () => {
+    const found = Object.fromEntries(
+      kolkataDay.formatToParts(new Date()).map((p) => [p.type, p.value]),
+    );
+    return parseLocalDate(
+      `${String(found['year'])}-${String(found['month'])}-${String(found['day'])}`,
+      'yyyy-mm-dd',
+    );
   },
 });
