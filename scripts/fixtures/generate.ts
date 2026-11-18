@@ -109,8 +109,45 @@ function cardTransactions(rand: () => number): FakeTx[] {
   return txs.sort((a, b) => a.day - b.day);
 }
 
+/** One statement row exactly as printed: the CSV and the fake PDF are both drawn from these. */
+export interface PrintedRow {
+  readonly date: string;
+  readonly narration: string;
+  readonly ref: string;
+  readonly withdrawal: string;
+  readonly deposit: string;
+  readonly balance: string;
+}
+
+const OPENING_BALANCE = 2_500_000; // ₹25,000.00
+
+function printedRows(txs: readonly FakeTx[]): PrintedRow[] {
+  let balance = OPENING_BALANCE;
+  return txs.map((t) => {
+    balance += t.amount;
+    return {
+      date: `${dd(t.day)}/${dd(MONTH)}/${String(YEAR)}`,
+      narration: t.details,
+      ref: t.ref ?? '',
+      withdrawal: t.amount < 0 ? plain(t.amount) : '',
+      deposit: t.amount > 0 ? plain(t.amount) : '',
+      balance: plain(paise(balance)),
+    };
+  });
+}
+
+/** The fake savings statement as printed rows (the same data as the CSV fixture for this seed). */
+export function fakeSavingsStatement(seed = DEFAULT_SEED): {
+  readonly rows: PrintedRow[];
+  readonly openingBalance: string;
+} {
+  return {
+    rows: printedRows(savingsTransactions(prng(seed))),
+    openingBalance: plain(paise(OPENING_BALANCE)),
+  };
+}
+
 function savingsCsv(txs: readonly FakeTx[]): string {
-  let balance = 2_500_000; // opening ₹25,000.00
   const lines = [
     'FakeBank Ltd (DEMO DATA - NOT A REAL BANK)',
     csvLine(['Account Holder: DEMO USER', '', '', '', '', '']),
@@ -132,20 +169,13 @@ function savingsCsv(txs: readonly FakeTx[]): string {
       'Closing Balance',
     ]),
   ];
-  for (const t of txs) {
-    balance += t.amount;
-    lines.push(
-      csvLine([
-        `${dd(t.day)}/${dd(MONTH)}/${String(YEAR)}`,
-        t.details,
-        t.ref ?? '',
-        t.amount < 0 ? plain(t.amount) : '',
-        t.amount > 0 ? plain(t.amount) : '',
-        plain(paise(balance)),
-      ]),
-    );
+  for (const r of printedRows(txs)) {
+    lines.push(csvLine([r.date, r.narration, r.ref, r.withdrawal, r.deposit, r.balance]));
   }
-  lines.push('*** End of Statement ***', csvLine(['Opening Balance', plain(paise(2_500_000))]));
+  lines.push(
+    '*** End of Statement ***',
+    csvLine(['Opening Balance', plain(paise(OPENING_BALANCE))]),
+  );
   // BOM + CRLF, like many bank exports.
   return `${BOM}${lines.join('\r\n')}\r\n`;
 }

@@ -89,6 +89,15 @@ describe('readPdfTextItems()', () => {
     const given = (getDocument.mock.calls[0]?.[0] as { data: Uint8Array }).data;
     expect(given).not.toBe(bytes);
     expect([...given]).toEqual([...bytes]);
+    expect(Object.getPrototypeOf(given)).toBe(Uint8Array.prototype);
+  });
+
+  it('accepts a Uint8Array subclass (such as a Node Buffer), which pdf.js itself would refuse', async () => {
+    class Subclassed extends Uint8Array {}
+    const { pdfjs, getDocument } = fakePdfJs([[run('a', 1, 1)]]);
+    await readPdfTextItems(pdfjs, new Subclassed([37, 80, 68, 70]), '');
+    const given = (getDocument.mock.calls[0]?.[0] as { data: Uint8Array }).data;
+    expect(Object.getPrototypeOf(given)).toBe(Uint8Array.prototype);
   });
 
   it('always releases the document, on success and on failure', async () => {

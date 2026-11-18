@@ -43,6 +43,11 @@ export interface PdfLayout {
   readonly columns: readonly PdfColumn[];
   /** Columns that wrap onto a second line (names as in the CSV), usually just the narration. */
   readonly continuationColumns: readonly string[];
+  /**
+   * How a wrapped line is joined to the one above: with a space (default; no space after a trailing
+   * "/"), or with none, for banks that wrap at a fixed width, even in the middle of a word.
+   */
+  readonly continuationJoin?: 'space' | 'none';
   /** Lines that start with one of these (ignoring case) are page furniture, e.g. "Page 1 of 3". */
   readonly ignoreLines?: readonly string[];
   /** A line starting with one of these ends the table, e.g. "End of Statement". */
@@ -75,6 +80,11 @@ const NUMERIC = /^[\d.,()+\s-]+(?:cr|dr)?$/iu;
 const DATE_LIKE = /^\d{1,2}[-/. ][\p{L}\d]{1,3}[-/. ]\d{2,4}$/u;
 
 const columnName = (column: PdfColumn): string => column.as ?? column.label;
+
+function joinWrapped(previous: string, next: string, how: PdfLayout['continuationJoin']): string {
+  if (previous === '') return next;
+  return how === 'none' || previous.endsWith('/') ? previous + next : `${previous} ${next}`;
+}
 const same = (a: string, b: string): boolean =>
   normaliseCounterparty(a) === normaliseCounterparty(b);
 
@@ -283,7 +293,11 @@ export function pdfTableToCsv(items: readonly PdfTextItem[], layout: PdfLayout):
 
     if (attached && populated.every(isContinuation)) {
       for (const index of populated) {
-        current[index] = `${current[index] ?? ''} ${texts[index] ?? ''}`.trim();
+        current[index] = joinWrapped(
+          current[index] ?? '',
+          texts[index] ?? '',
+          layout.continuationJoin,
+        );
       }
       last = { page: line.page, y: line.y };
     } else if (attached || line.cells.some((cell) => NUMERIC.test(cell.text))) {

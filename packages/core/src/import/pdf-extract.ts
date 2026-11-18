@@ -89,10 +89,13 @@ export async function readPdfTextItems(
   const maxPages = options.maxPages ?? MAX_PDF_PAGES;
   const maxItems = options.maxItems ?? MAX_PDF_ITEMS;
   const task = pdfjs.getDocument({
-    data: data.slice(), // pdf.js takes ownership of the buffer it is given
+    // A fresh plain Uint8Array: pdf.js takes ownership of what it is given and rejects subclasses
+    // such as Node's Buffer (whose slice() is a view, not a copy).
+    data: new Uint8Array(data),
     ...(password === '' ? {} : { password }),
     isEvalSupported: false,
     enableXfa: false,
+    verbosity: 0, // errors only: warnings about fonts and the optional canvas are noise here
     disableFontFace: true,
     useSystemFonts: false,
   });

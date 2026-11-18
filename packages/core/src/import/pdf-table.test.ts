@@ -129,6 +129,34 @@ describe('pdfTableToCsv()', () => {
     );
   });
 
+  it('joins a narration wrapped right after a slash without inventing a space', () => {
+    const items = [
+      ...header(1, 700),
+      ...txn(1, 680, { ...chai, narration: 'UPI/FRIEND ALPHA/' }),
+      item(1, 670, 110, 'TICKETS'),
+    ];
+    const { csv } = pdfTableToCsv(items, layout);
+    expect(createCsvImporter(FAKEBANK_SAVINGS).parse(csv).rows[0]?.counterparty).toBe(
+      'UPI/FRIEND ALPHA/TICKETS',
+    );
+  });
+
+  it('can join wrapped lines with no space at all, for banks that wrap at a fixed width', () => {
+    const items = [
+      ...header(1, 700),
+      ...txn(1, 680, { ...chai, narration: 'UPI/PAYMENT FRO' }),
+      item(1, 670, 110, 'M SOMEONE'),
+    ];
+    const joined = (join: PdfLayout['continuationJoin']): string | undefined => {
+      const how = join === undefined ? {} : { continuationJoin: join };
+      const { csv } = pdfTableToCsv(items, { ...layout, ...how });
+      return createCsvImporter(FAKEBANK_SAVINGS).parse(csv).rows[0]?.counterparty;
+    };
+    expect(joined('none')).toBe('UPI/PAYMENT FROM SOMEONE');
+    expect(joined('space')).toBe('UPI/PAYMENT FRO M SOMEONE');
+    expect(joined(undefined)).toBe('UPI/PAYMENT FRO M SOMEONE');
+  });
+
   it('reads several pages: repeated headers and page furniture are skipped', () => {
     const items = [
       ...header(1, 700),
