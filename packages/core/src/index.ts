@@ -22,5 +22,8 @@ export * from './matching.ts';
 export * from './import/types.ts';
 export * from './import/csv.ts';
 export * from './import/csv-importer.ts';
+export * from './import/pdf-table.ts';
+export * from './import/pdf-extract.ts';
+export * from './import/pdf-layouts.ts';
 export * from './import/identity.ts';
 export * from './import/demo-mappings.ts';

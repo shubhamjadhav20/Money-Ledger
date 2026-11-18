@@ -7,7 +7,8 @@ import type { CsvMapping, ImportSource, ParseIssue, ParseResult, RawRow } from '
 
 const norm = (s: string): string => s.trim().toLowerCase();
 
-function requiredColumns(m: CsvMapping): string[] {
+/** Every column name the mapping reads, in the file's own spelling. */
+export function mappingColumns(m: CsvMapping): string[] {
   const a = m.amount;
   const amountColumns =
     a.kind === 'signed'
@@ -51,13 +52,13 @@ function readAmount(m: CsvMapping, cell: (column: string) => string): Paise {
 }
 
 function parseRecords(mapping: CsvMapping, records: CsvRecord[]): ParseResult {
-  const required = requiredColumns(mapping).map(norm);
+  const required = mappingColumns(mapping).map(norm);
   const header = records.find((r) => {
     const names = r.fields.map(norm);
     return required.every((c) => names.includes(c));
   });
   if (header === undefined) {
-    const expected = requiredColumns(mapping).join(', ');
+    const expected = mappingColumns(mapping).join(', ');
     return {
       rows: [],
       issues: [{ line: 0, reason: `Header row not found (expected: ${expected})` }],

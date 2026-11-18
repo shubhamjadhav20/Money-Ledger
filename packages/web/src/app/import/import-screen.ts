@@ -12,6 +12,9 @@ import { ImportStore } from './import-store';
 /** Issues are shown in full up to this many; the rest are counted. */
 const ISSUES_SHOWN = 8;
 
+const isPdf = (file: File): boolean =>
+  file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
 @Component({
   selector: 'app-import',
   imports: [RouterLink, UiButton, UiCard, UiMoney, UiStateMessage],
@@ -48,10 +51,21 @@ export class ImportScreen {
     const file = event.target.files?.item(0);
     if (file === null || file === undefined) return;
     try {
-      this.store.setFile(file.name, await file.text());
+      if (isPdf(file)) {
+        this.store.setPdf(file.name, new Uint8Array(await file.arrayBuffer()));
+      } else {
+        this.store.setFile(file.name, await file.text());
+      }
     } catch {
       this.store.failFile('Could not read that file.');
     }
+  }
+
+  /** The password is handed over and the box emptied at once, so it is not left on the page. */
+  protected readPdf(password: HTMLInputElement): void {
+    const typed = password.value;
+    password.value = '';
+    void this.store.readPdf(typed);
   }
 
   protected preview(): void {

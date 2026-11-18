@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CsvError, parseCsv } from './csv.ts';
+import { CsvError, formatCsvRecord, parseCsv } from './csv.ts';
 
 const fields = (text: string): string[][] => parseCsv(text).map((r) => r.fields);
 
@@ -48,5 +48,23 @@ describe('parseCsv()', () => {
 
   it('rejects text after a closing quote', () => {
     expect(() => parseCsv('"a"b,c')).toThrow(CsvError);
+  });
+});
+
+describe('formatCsvRecord()', () => {
+  it('joins plain fields and quotes only when needed', () => {
+    expect(formatCsvRecord(['a', 'b c', ''])).toBe('a,b c,');
+    expect(formatCsvRecord(['1,23,456.78', 'say "hi"', 'two\nlines'])).toBe(
+      '"1,23,456.78","say ""hi""","two\nlines"',
+    );
+  });
+
+  it('round-trips through parseCsv, including awkward text', () => {
+    const awkward = ['UPI/SHOP, BRANCH 7', 'He said "no"', 'a\r\nb', '', ' padded ', '₹ 1,00,000'];
+    expect(parseCsv(formatCsvRecord(awkward))[0]?.fields).toEqual(awkward);
+  });
+
+  it('honours another delimiter', () => {
+    expect(formatCsvRecord(['a;b', 'c'], ';')).toBe('"a;b";c');
   });
 });
