@@ -1,6 +1,7 @@
 import { day, DecodeError, flag, int, list, money, nullable, oneOf, record, text } from './decode';
 import {
   decodeBalances,
+  decodeCaptured,
   decodeForecast,
   decodeFree,
   decodeImportOutcome,
@@ -18,6 +19,7 @@ import {
 } from './models';
 import {
   BALANCES_JSON,
+  CAPTURE_JSON,
   FORECAST_JSON,
   CARD_POT_JSON,
   FREE_JSON,
@@ -301,5 +303,30 @@ describe('import decoders', () => {
     expect(() => decodeImportOutcome({ ...IMPORT_OUTCOME_JSON, merged: '1' })).toThrow(
       /outcome\.merged/,
     );
+  });
+});
+
+describe('capture decoder', () => {
+  it('reads the saved entry', () => {
+    expect(decodeCaptured(CAPTURE_JSON)).toEqual({
+      id: 'cap-1',
+      date: '2026-11-17',
+      amountPaise: -45_000,
+      method: 'upi',
+      category: 'dinner',
+      kind: 'spend',
+      memo: '',
+      status: 'pending',
+    });
+  });
+
+  it('rejects a reply that has the wrong shape, naming the field', () => {
+    expect(() => decodeCaptured({ id: 'x' })).toThrow(/capture.entry should be an object/);
+    expect(() =>
+      decodeCaptured({ ...CAPTURE_JSON, entry: { ...CAPTURE_JSON.entry, amountPaise: 4.5 } }),
+    ).toThrow(/capture.entry.amountPaise/);
+    expect(() =>
+      decodeCaptured({ ...CAPTURE_JSON, entry: { ...CAPTURE_JSON.entry, kind: 'transfer' } }),
+    ).toThrow(/capture.entry.kind/);
   });
 });

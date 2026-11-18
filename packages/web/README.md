@@ -39,7 +39,11 @@ pnpm --filter @ledger/web build   # production build into packages/web/dist
   and the labels.
 - `src/app/reconcile/`: `/reconcile` (read only), its store (`ReconcileStore`) and `grouping.ts`, which
   turns the API's bundles and review queue into the cards the screen shows.
-- `src/app/guards.ts`: `connectedOnly` / `disconnectedOnly` route guards.
+- `src/app/quick-add/`: `/quick-add`, its store (`QuickAddStore`) and `compose.ts`, which turns the
+  form into one line of the capture grammar. A capture-only token (Connect sees a 403 on its read
+  check) opens only this screen.
+- `src/app/guards.ts`: `connectedOnly` (needs a token that can read), `signedIn` (any token) and
+  `disconnectedOnly` route guards.
 - `proxy.conf.json`: the dev proxy. The API has no CORS, so the browser talks to `/api/...` on the
   dev server, which strips the prefix and forwards to `127.0.0.1:3000`.
 - `src/testing.ts`, `src/testing-api.ts`: spec-only helpers and fake API data (excluded from the app build).

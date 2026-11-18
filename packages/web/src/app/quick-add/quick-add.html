@@ -1,0 +1,184 @@
+<h1>Quick add</h1>
+
+<div class="layout">
+  <form (submit)="$event.preventDefault(); save()" novalidate>
+    <section class="entry" aria-label="Amount">
+      <div class="direction" role="radiogroup" aria-label="Money going out or coming in">
+        @for (option of directions; track option) {
+        <label>
+          <input
+            type="radio"
+            name="direction"
+            [value]="option"
+            [checked]="store.direction() === option"
+            (change)="store.direction.set(option)"
+          />
+          <span>{{ directionLabels[option] }}</span>
+        </label>
+        }
+      </div>
+
+      <div class="amount">
+        <label class="visually-hidden" for="qa-amount">Amount in rupees</label>
+        <span class="rupee" aria-hidden="true">₹</span>
+        <input
+          #amountField
+          id="qa-amount"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          placeholder="0"
+          maxlength="14"
+          [value]="store.amount()"
+          (input)="store.amount.set(typed($event))"
+        />
+      </div>
+
+      <p class="reading" aria-live="polite">
+        @if (store.reading(); as reading) { @if (reading.ok) { {{ reading.entry.kind === 'income' ?
+        'Received' : 'Spent' }}
+        <ui-money [amount]="magnitude(reading.entry.amount)" tone="neutral" />
+        on {{ reading.entry.category }} @if (reading.entry.memo !== '') { ({{ reading.entry.memo }})
+        } · {{ methodLabels[reading.entry.method] }} · {{ formatDay(reading.entry.date) }} } @else {
+        <span class="bad">{{ reading.error }}</span>
+        } } @else { Type an amount and a category, like 450 and dinner. }
+      </p>
+    </section>
+
+    <ui-card>
+      <div class="fields">
+        <div class="field">
+          <label for="qa-category">Category</label>
+          <input
+            class="control"
+            id="qa-category"
+            type="text"
+            maxlength="32"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+            placeholder="food, fuel, rent"
+            [value]="store.category()"
+            (input)="store.category.set(typed($event))"
+          />
+          @if (store.recentCategories().length > 0) {
+          <div class="chips" role="group" aria-label="Recent categories">
+            @for (name of store.recentCategories(); track name) {
+            <button
+              ui-chip
+              type="button"
+              [selected]="store.category() === name"
+              (click)="store.category.set(name)"
+            >
+              {{ name }}
+            </button>
+            }
+          </div>
+          }
+        </div>
+
+        <div class="field">
+          <label for="qa-note">Note, optional</label>
+          <input
+            class="control"
+            id="qa-note"
+            type="text"
+            maxlength="80"
+            autocomplete="off"
+            [value]="store.note()"
+            (input)="store.note.set(typed($event))"
+          />
+        </div>
+
+        <div class="field">
+          <span class="legend" id="qa-method">Paid with</span>
+          <div class="chips" role="group" aria-labelledby="qa-method">
+            @for (option of methods; track option) {
+            <button
+              ui-chip
+              type="button"
+              [selected]="store.method() === option"
+              (click)="store.method.set(option)"
+            >
+              {{ methodLabels[option] }}
+            </button>
+            }
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="legend" id="qa-day">When</span>
+          <div class="chips" role="group" aria-labelledby="qa-day">
+            @for (option of days; track option) {
+            <button
+              ui-chip
+              type="button"
+              [selected]="store.day() === option"
+              (click)="store.day.set(option)"
+            >
+              {{ dayLabels[option] }}
+            </button>
+            }
+          </div>
+        </div>
+
+        @if (store.accounts().length > 0) {
+        <div class="field">
+          <label for="qa-account">Account</label>
+          <select class="control" id="qa-account" (change)="store.accountId.set(typed($event))">
+            <option value="" [selected]="store.accountId() === ''">
+              Pick from how it was paid
+            </option>
+            @for (account of store.accounts(); track account.accountId) {
+            <option
+              [value]="account.accountId"
+              [selected]="store.accountId() === account.accountId"
+            >
+              {{ account.name }}
+            </option>
+            }
+          </select>
+          <p class="hint">
+            Only needed when you have more than one account of the kind that was used.
+          </p>
+        </div>
+        }
+      </div>
+
+      @if (store.failure(); as text) {
+      <p class="problem" role="alert">{{ text }}</p>
+      }
+
+      <button ui-button variant="primary" class="save" type="submit" [disabled]="!store.canSave()">
+        {{ store.saving() ? 'Saving…' : 'Add entry' }}
+      </button>
+      <p class="hint">
+        Saved as pending. A statement import later completes it, so it counts once.
+      </p>
+    </ui-card>
+  </form>
+
+  <section class="added" aria-labelledby="qa-added">
+    <h2 id="qa-added">Just added</h2>
+    @if (store.added().length === 0) {
+    <p class="muted">Entries you add on this visit show up here.</p>
+    } @else {
+    <ul>
+      @for (item of store.added(); track item.id) {
+      <li>
+        <div class="what">
+          <span class="category">{{ item.category }}</span>
+          <span class="meta">
+            {{ methodLabels[item.method] }} · {{ formatDay(item.date) }} · {{
+            statusLabels[item.status] }} @if (item.memo !== '') { · {{ item.memo }} }
+          </span>
+        </div>
+        <ui-money [amount]="item.amountPaise" size="lg" [showPlus]="true" />
+      </li>
+      }
+    </ul>
+    }
+  </section>
+</div>
+
+<p class="visually-hidden" role="status">{{ announcement() }}</p>

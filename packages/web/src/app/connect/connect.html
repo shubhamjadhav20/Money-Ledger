@@ -1,8 +1,8 @@
 <ui-card>
   <h1>Connect</h1>
   <p class="muted">
-    Paste an API token to read your ledger. It is kept in this tab's memory only, so reloading the
-    page asks for it again.
+    Paste an API token to read your ledger. A capture-only token opens quick-add and nothing else.
+    It is kept in this tab's memory only, so reloading the page asks for it again.
   </p>
   <form (submit)="$event.preventDefault(); submit(token.value)" novalidate>
     <label for="token">API token</label>

@@ -120,6 +120,45 @@ nav a.active ui-icon {
   color: var(--color-accent);
 }
 
+/* Quick add: a floating button on a phone, a button under the brand in the sidebar. */
+.quick {
+  position: fixed;
+  right: var(--space-4);
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-3));
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 3.25rem;
+  padding: 0 var(--space-5) 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-fill);
+  color: var(--color-on-accent);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  text-decoration: none;
+  box-shadow: 0 6px 16px color-mix(in srgb, #000 30%, transparent);
+}
+
+.quick ui-icon {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+/* Already on the quick-add screen: the button would only cover it. */
+.quick.active {
+  display: none;
+}
+
+/* A capture-only token has no tab bar: the button and the top bar are all there is. */
+.limited nav {
+  display: none;
+}
+
+.limited .quick {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-4));
+}
+
 /* The gallery is a development page: on a phone it is reached by address only. */
 nav .minor,
 nav .exit {
@@ -133,9 +172,14 @@ main {
 }
 
 .connected main {
+  /* Room for the tab bar and the floating Quick add button, so the last row is never covered. */
   padding-bottom: calc(
-    var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-6)
+    var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-8) + var(--space-5)
   );
+}
+
+.connected.limited main {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-8));
 }
 
 main:focus {
@@ -168,6 +212,19 @@ main:focus {
 
   .connected .brand {
     font-size: var(--text-xl);
+  }
+
+  .connected .quick {
+    position: static;
+    justify-content: center;
+    min-height: var(--tap-target);
+    margin: 0 var(--space-3) var(--space-4);
+    padding: 0 var(--space-4);
+    box-shadow: none;
+  }
+
+  .connected .quick.active {
+    display: inline-flex;
   }
 
   .connected .bar-exit {

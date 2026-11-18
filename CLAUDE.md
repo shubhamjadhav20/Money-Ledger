@@ -24,7 +24,7 @@ See PLAN.md for scope, domain rules and milestones.
 - Angular 22 requires Node `>=24.15` (now enforced in `engines`); your own machine needs that Node to run the web app.
 - MCP SDK: `@modelcontextprotocol/sdk` (v1) and `@modelcontextprotocol/server` (v2) both exist; choose in M6.
 
-## Where we are (updated 2026-11-17, keep this current at the end of each milestone)
+## Where we are (updated 2026-11-18, keep this current at the end of each milestone)
 
 Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed over HTTPS). CI (lint, format, typecheck, coverage-gated tests, build, audit, gitleaks) and CodeQL are green.
 
@@ -54,7 +54,9 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 
 **UI refresh done (branch `feat/ui-refresh`):** new look at token and component level: ink-green neutrals, one ledger-green hero, marigold accent; Bricolage Grotesque + Figtree self-hosted in `public/fonts` (no npm dependency); `ui-icon` (Lucide shapes); phone bottom tab bar and desktop sidebar; Dashboard hero with a payday runway line (`dashboard/runway.ts`); all screens restyled. No behaviour or API change. 394 web tests.
 
-**Next: M5g** quick-add (capture-scope token), built in the new look. The payday split and scheduled items have no screen yet. Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
+**M5g done (branch `feat/m5g-quick-add`):** `/quick-add`: amount in the green panel, Spent/Received, category (+ recent chips), note, method and day chips, a live read of the line with core's `parseCapture`, a just-added list, optional Account choice for tokens that can read. A capture-only token (Connect's read check gets 403) opens only this screen. No new endpoint, scope or dependency. 450 web tests. CI audit ignores GHSA-fc5q-39xc-vjpf (picomatch, no patched release, dev tooling only): remove it from `pnpm-workspace.yaml` once picomatch ships a fix.
+
+**Next:** the payday split and scheduled items have no screen yet; confirming or rejecting a reconcile match needs a new endpoint (explicit go-ahead). Then M6 (MCP server). Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
 
 **Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `planning-service` `planning-routes` `analysis-service` `analysis-routes` `transaction-view` `http-support` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
 

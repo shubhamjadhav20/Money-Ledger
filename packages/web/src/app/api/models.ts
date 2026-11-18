@@ -245,6 +245,33 @@ export function decodeTransaction(value: unknown): TransactionView {
 export const decodeTransactions = (value: unknown): TransactionView[] =>
   list(record(value, 'transactions')['items'], 'transactions.items').map(decodeTransaction);
 
+/** What a quick-add saved: the new pending entry, as the server read the text. */
+export interface CapturedView {
+  readonly id: string;
+  readonly date: LocalDate;
+  readonly amountPaise: Paise;
+  readonly method: PaymentMethod;
+  readonly category: string;
+  readonly kind: 'spend' | 'income';
+  readonly memo: string;
+  readonly status: TxStatus;
+}
+
+export function decodeCaptured(value: unknown): CapturedView {
+  const r = record(value, 'capture reply');
+  const e = record(r['entry'], 'capture.entry');
+  return {
+    id: text(r['id'], 'capture.id'),
+    date: day(e['date'], 'capture.entry.date'),
+    amountPaise: money(e['amountPaise'], 'capture.entry.amountPaise'),
+    method: oneOf(e['method'], PAYMENT_METHODS, 'capture.entry.method'),
+    category: text(e['category'], 'capture.entry.category'),
+    kind: oneOf(e['kind'], ['spend', 'income'] as const, 'capture.entry.kind'),
+    memo: text(e['memo'], 'capture.entry.memo'),
+    status: oneOf(e['status'], TX_STATUSES, 'capture.entry.status'),
+  };
+}
+
 export function decodeSummary(value: unknown): SummaryView {
   const r = record(value, 'summary');
   const byKind = record(r['byKind'], 'summary.byKind');

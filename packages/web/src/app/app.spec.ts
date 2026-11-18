@@ -52,6 +52,33 @@ describe('App shell', () => {
     expect(query(nav, 'button').textContent.trim()).toBe('Disconnect');
   });
 
+  it('puts Quick add outside the tab bar once connected, and not before', async () => {
+    const { auth } = setup();
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('a.quick')).toBeNull();
+    auth.connect('tok');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const quick = query(el, 'a.quick');
+    expect(quick.textContent.trim()).toBe('Quick add');
+    expect(quick.getAttribute('href')).toBe('/quick-add');
+    expect(query(el, 'nav').contains(quick)).toBe(false);
+  });
+
+  it('a capture-only token gets Quick add and Disconnect, and no screen links', async () => {
+    const { auth } = setup();
+    auth.connect('tok', { captureOnly: true });
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const nav = query(el, 'nav');
+    expect([...nav.querySelectorAll('a')].map((a) => a.textContent.trim())).toEqual(['Gallery']);
+    expect(query(el, 'a.quick')).toBeTruthy();
+    expect(query(el, '.shell').classList.contains('limited')).toBe(true);
+  });
+
   it('disconnect forgets the token and goes to the connect screen', async () => {
     const { auth, router } = setup();
     auth.connect('tok');
@@ -109,6 +136,33 @@ describe('Routing', () => {
       await harness.navigateByUrl(url);
       expect(router.url).toBe('/dashboard');
       expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toContain('Dashboard');
+    },
+  );
+
+  it('/quick-add asks a signed-out visitor to connect', async () => {
+    const { router } = setup();
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/quick-add');
+    expect(router.url).toBe('/connect');
+  });
+
+  it('/quick-add opens for a connected visitor', async () => {
+    const { auth, router } = setup();
+    auth.connect('tok');
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/quick-add');
+    expect(router.url).toBe('/quick-add');
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toContain('Quick add');
+  });
+
+  it.each(['/', '/connect', '/nowhere', '/dashboard', '/transactions', '/import', '/pots'])(
+    '%s sends a capture-only visitor to quick-add',
+    async (url) => {
+      const { auth, router } = setup();
+      auth.connect('tok', { captureOnly: true });
+      const harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl(url);
+      expect(router.url).toBe('/quick-add');
     },
   );
 

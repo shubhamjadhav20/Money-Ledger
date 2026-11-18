@@ -4,7 +4,8 @@
  * payday is 7 December, so free-to-spend covers 20 days.
  */
 import type { ApiClient, FreeResult, ImportRequest } from './app/api/api-client';
-import type { ImportPlanView } from './app/api/models';
+import { parseLocalDate, paise } from '@ledger/core';
+import type { CapturedView, ImportPlanView } from './app/api/models';
 import { must } from './testing';
 import {
   decodeBalances,
@@ -20,6 +21,20 @@ import {
   decodeSummary,
   decodeTransactions,
 } from './app/api/models';
+
+/** What `POST /capture` answers for "450 dinner upi". */
+export const CAPTURE_JSON = {
+  id: 'cap-1',
+  entry: {
+    date: '2026-11-17',
+    amountPaise: -45_000,
+    method: 'upi',
+    category: 'dinner',
+    kind: 'spend',
+    memo: '',
+    status: 'pending',
+  },
+};
 
 export const BALANCES_JSON = {
   items: [
@@ -474,6 +489,7 @@ export type Api = Pick<
   | 'transactions'
   | 'summary'
   | 'updateTransaction'
+  | 'capture'
   | 'previewImport'
   | 'confirmImport'
 >;
@@ -525,6 +541,20 @@ export function fakeApi(over: Partial<Api> = {}) {
     summary: vi.fn(over.summary ?? (() => Promise.resolve(SUMMARY))),
     previewImport: vi.fn(over.previewImport ?? (() => Promise.resolve(IMPORT_PLAN))),
     confirmImport: vi.fn(over.confirmImport ?? (() => Promise.resolve(IMPORT_OUTCOME))),
+    capture: vi.fn(
+      over.capture ??
+        ((text) =>
+          Promise.resolve({
+            id: 'cap-1',
+            date: parseLocalDate('2026-11-17', 'yyyy-mm-dd'),
+            amountPaise: paise(-45_000),
+            method: 'upi',
+            category: 'dinner',
+            kind: 'spend',
+            memo: text,
+            status: 'pending',
+          } satisfies CapturedView)),
+    ),
     updateTransaction: vi.fn(
       over.updateTransaction ??
         ((id, change) => {
