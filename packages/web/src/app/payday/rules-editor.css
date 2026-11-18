@@ -1,5 +1,5 @@
 form {
-  max-width: 48rem;
+  max-width: none;
 }
 
 .rows {
@@ -37,4 +37,9 @@ ul.problem {
 
 .muted {
   color: var(--color-text-muted);
+}
+
+.row .control {
+  width: 100%;
+  min-width: 0;
 }

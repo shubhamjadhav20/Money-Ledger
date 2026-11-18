@@ -44,6 +44,11 @@ h2 {
   margin-bottom: 0;
 }
 
+.card-top button {
+  flex: none;
+  white-space: nowrap;
+}
+
 .items {
   display: grid;
   margin: var(--space-3) 0 0;
