@@ -1,22 +1,44 @@
 <a class="skip-link" href="#main">Skip to content</a>
-<header class="bar">
-  <span class="brand">Ledger</span>
-  <nav aria-label="Main">
-    @if (auth.connected()) {
-    <a routerLink="/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page">Dashboard</a>
-    <a routerLink="/transactions" routerLinkActive="active" ariaCurrentWhenActive="page"
-      >Transactions</a
-    >
-    <a routerLink="/import" routerLinkActive="active" ariaCurrentWhenActive="page">Import</a>
-    <a routerLink="/reconcile" routerLinkActive="active" ariaCurrentWhenActive="page">Reconcile</a>
-    <a routerLink="/pots" routerLinkActive="active" ariaCurrentWhenActive="page">Pots</a>
-    }
-    <a routerLink="/gallery" routerLinkActive="active" ariaCurrentWhenActive="page">Gallery</a>
-    @if (auth.connected()) {
-    <button ui-button variant="ghost" type="button" (click)="disconnect()">Disconnect</button>
-    }
-  </nav>
-</header>
-<main id="main" tabindex="-1">
-  <router-outlet />
-</main>
+<div class="shell" [class.connected]="auth.connected()">
+  <div class="side">
+    <header class="bar">
+      <span class="brand">Ledger<span class="dot" aria-hidden="true">.</span></span>
+      @if (auth.connected()) {
+      <button class="bar-exit" type="button" (click)="disconnect()">
+        <ui-icon name="logout" />
+        <span class="visually-hidden">Disconnect</span>
+      </button>
+      }
+    </header>
+    <nav aria-label="Main">
+      @if (auth.connected()) {
+      <a routerLink="/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page"
+        ><ui-icon name="home" /><span>Dashboard</span></a
+      >
+      <a routerLink="/transactions" routerLinkActive="active" ariaCurrentWhenActive="page"
+        ><ui-icon name="list" /><span>Transactions</span></a
+      >
+      <a routerLink="/import" routerLinkActive="active" ariaCurrentWhenActive="page"
+        ><ui-icon name="upload" /><span>Import</span></a
+      >
+      <a routerLink="/reconcile" routerLinkActive="active" ariaCurrentWhenActive="page"
+        ><ui-icon name="match" /><span>Reconcile</span></a
+      >
+      <a routerLink="/pots" routerLinkActive="active" ariaCurrentWhenActive="page"
+        ><ui-icon name="pots" /><span>Pots</span></a
+      >
+      }
+      <a class="minor" routerLink="/gallery" routerLinkActive="active" ariaCurrentWhenActive="page"
+        >Gallery</a
+      >
+      @if (auth.connected()) {
+      <button class="exit" type="button" (click)="disconnect()">
+        <ui-icon name="logout" />Disconnect
+      </button>
+      }
+    </nav>
+  </div>
+  <main id="main" tabindex="-1">
+    <router-outlet />
+  </main>
+</div>

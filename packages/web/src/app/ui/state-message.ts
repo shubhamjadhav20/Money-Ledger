@@ -32,6 +32,7 @@ export type StateKind = 'empty' | 'loading' | 'error';
       padding: var(--space-6) var(--space-4);
       border: 1px dashed var(--color-border-strong);
       border-radius: var(--radius-lg);
+      background: var(--color-surface-1);
       text-align: center;
     }
     :host(.error) {

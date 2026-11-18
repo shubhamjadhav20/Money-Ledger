@@ -14,6 +14,11 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-1);
     }
+    @media (max-width: 30rem) {
+      :host {
+        padding: var(--space-4);
+      }
+    }
   `,
 })
 export class UiCard {}

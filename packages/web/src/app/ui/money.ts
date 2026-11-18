@@ -24,12 +24,13 @@ export type MoneyTone = 'auto' | 'neutral';
     }
     :host(.lg) {
       font-size: var(--text-lg);
-      font-weight: var(--weight-medium);
+      font-weight: 600;
     }
     :host(.display) {
       font-size: var(--text-display);
-      font-weight: var(--weight-bold);
-      line-height: var(--leading-tight);
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: var(--tracking-display);
     }
     :host(.positive) {
       color: var(--color-positive);

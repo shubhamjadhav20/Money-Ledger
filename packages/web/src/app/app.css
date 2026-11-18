@@ -7,58 +7,260 @@
   left: var(--space-3);
   top: -4rem;
   padding: var(--space-2) var(--space-3);
-  background: var(--color-accent);
+  background: var(--color-accent-fill);
   color: var(--color-on-accent);
   border-radius: var(--radius-sm);
-  z-index: 10;
+  z-index: 30;
 }
 
 .skip-link:focus {
   top: var(--space-3);
 }
 
+/* ---- Phone first: a slim top bar and a bottom tab bar. ---- */
+
+.side {
+  display: contents;
+}
+
 .bar {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0 var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface-1);
-  border-bottom: 1px solid var(--color-border);
+  min-height: 3.5rem;
+  padding: 0 var(--space-4);
 }
 
 .brand {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
   font-weight: var(--weight-bold);
+  letter-spacing: -0.02em;
+}
+
+.brand .dot {
+  color: var(--color-accent-fill);
+}
+
+.bar-exit,
+.exit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.bar-exit {
+  justify-content: center;
+  width: var(--tap-target);
+  height: var(--tap-target);
+  border-radius: var(--radius-pill);
+}
+
+.bar-exit:hover,
+.exit:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
 }
 
 nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--space-4);
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 20;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--color-surface-1);
+  border-top: 1px solid var(--color-border);
 }
 
 nav a {
-  display: inline-flex;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  min-height: var(--tap-target);
+  justify-content: center;
+  gap: 0.125rem;
+  min-width: 0;
   color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: var(--weight-medium);
   text-decoration: none;
+  letter-spacing: 0.005em;
+}
+
+nav a ui-icon {
+  width: 1.4rem;
+  height: 1.4rem;
 }
 
 nav a.active {
   color: var(--color-text);
-  font-weight: var(--weight-medium);
-  text-decoration: underline;
-  text-underline-offset: 0.35em;
+  font-weight: var(--weight-bold);
+}
+
+nav a.active::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  width: 1.75rem;
+  height: 3px;
+  border-radius: 0 0 var(--radius-pill) var(--radius-pill);
+  background: var(--color-accent-fill);
+}
+
+nav a.active ui-icon {
+  color: var(--color-accent);
+}
+
+/* The gallery is a development page: on a phone it is reached by address only. */
+nav .minor,
+nav .exit {
+  display: none;
 }
 
 main {
   max-width: var(--content-width);
   margin: 0 auto;
-  padding: var(--space-5) var(--space-4) var(--space-8);
+  padding: var(--space-3) var(--space-4) var(--space-8);
+}
+
+.connected main {
+  padding-bottom: calc(
+    var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-6)
+  );
 }
 
 main:focus {
   outline: none;
+}
+
+/* ---- Wide screens: a left sidebar. ---- */
+
+@media (min-width: 56rem) {
+  .connected.shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .connected .side {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    padding: var(--space-4) var(--space-3);
+    background: var(--color-surface-1);
+    border-right: 1px solid var(--color-border);
+  }
+
+  .connected .bar {
+    padding: var(--space-2) var(--space-3) var(--space-5);
+  }
+
+  .connected .brand {
+    font-size: var(--text-xl);
+  }
+
+  .connected .bar-exit {
+    display: none;
+  }
+
+  .connected nav {
+    position: static;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-1);
+    height: auto;
+    padding: 0;
+    background: none;
+    border: 0;
+  }
+
+  .connected nav a {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--space-3);
+    min-height: var(--tap-target);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--text-md);
+  }
+
+  .connected nav a:hover {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+  }
+
+  .connected nav a.active {
+    background: var(--color-surface-2);
+  }
+
+  .connected nav a.active::before {
+    top: 50%;
+    left: -0.75rem;
+    width: 3px;
+    height: 1.5rem;
+    margin-top: -0.75rem;
+    border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+  }
+
+  .connected nav ui-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .connected nav .minor {
+    display: flex;
+    margin-top: auto;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-regular);
+  }
+
+  .connected nav .exit {
+    display: inline-flex;
+    min-height: var(--tap-target);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+  }
+
+  .connected main {
+    width: 100%;
+    padding: var(--space-6) var(--space-7) var(--space-8);
+  }
+}
+
+/* Signed out (any size): no tab bar or sidebar, just the brand and the gallery link. */
+.shell:not(.connected) nav {
+  position: static;
+  display: flex;
+  justify-content: flex-end;
+  height: auto;
+  padding: 0 var(--space-4);
+  background: none;
+  border: 0;
+}
+
+.shell:not(.connected) nav .minor {
+  display: inline-flex;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.shell:not(.connected) .side {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: var(--space-2);
 }
