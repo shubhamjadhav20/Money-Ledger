@@ -101,6 +101,21 @@ nav a ui-icon {
   height: 1.4rem;
 }
 
+/* Six tabs on a phone: keep the longest label ("Transactions") inside its column. */
+@media (max-width: 26rem) {
+  nav a {
+    font-size: 0.625rem;
+    letter-spacing: 0;
+  }
+
+  nav a span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 nav a.active {
   color: var(--color-text);
   font-weight: var(--weight-bold);

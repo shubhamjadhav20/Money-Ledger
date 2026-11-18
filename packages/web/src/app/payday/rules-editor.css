@@ -1,0 +1,45 @@
+form {
+  max-width: none;
+}
+
+.rows {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+ul.problem {
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.row .control {
+  width: 100%;
+  min-width: 0;
+}

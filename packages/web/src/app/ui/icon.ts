@@ -1,7 +1,17 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 export type IconName =
-  'home' | 'list' | 'upload' | 'match' | 'pots' | 'plus' | 'logout' | 'left' | 'right' | 'alert';
+  | 'home'
+  | 'list'
+  | 'upload'
+  | 'match'
+  | 'pots'
+  | 'payday'
+  | 'plus'
+  | 'logout'
+  | 'left'
+  | 'right'
+  | 'alert';
 
 /**
  * A line icon. Decorative by default (aria-hidden): the text next to it, or a visually hidden
@@ -59,6 +69,13 @@ export type IconName =
           />
           <path d="M16 10h.01" />
           <path d="M2 8v1a2 2 0 0 0 2 2h1" />
+        }
+        @case ('payday') {
+          <path d="M8 2v3" />
+          <path d="M16 2v3" />
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M3 9h18" />
+          <path d="m9 15 2 2 4-4" />
         }
         @case ('plus') {
           <path d="M5 12h14" />

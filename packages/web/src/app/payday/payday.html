@@ -1,0 +1,142 @@
+<header class="top">
+  <h1>Payday</h1>
+</header>
+
+<p class="muted intro">
+  Tell the app when you are paid and where the salary goes. The Dashboard uses this to count the
+  days to payday and to keep your bills out of free-to-spend.
+</p>
+
+@switch (store.state()) { @case ('error') {
+<ui-state-message
+  kind="error"
+  title="Could not load your payday settings"
+  [description]="store.error() ?? ''"
+>
+  <button ui-button variant="primary" type="button" (click)="reload()">Try again</button>
+</ui-state-message>
+} @case ('ready') { @if (store.settings(); as settings) {
+<ui-card>
+  <h2>When you are paid</h2>
+  <app-settings-form
+    [settings]="settings"
+    [saving]="store.saving()"
+    [failure]="store.failureFor('settings')"
+    (save)="saveSettings($event)"
+  />
+</ui-card>
+}
+
+<ui-card>
+  <h2>Where your salary goes</h2>
+  <p class="muted">
+    Lines are taken in order. A line can put its share into a pot; whatever has no pot stays with
+    you to spend.
+  </p>
+  <app-rules-editor
+    [rules]="store.rules()"
+    [pots]="store.pots()"
+    [saving]="store.saving()"
+    [failure]="store.failureFor('rules')"
+    (save)="saveRules($event)"
+  />
+</ui-card>
+
+<ui-card>
+  <h2>Try a payday</h2>
+  <app-payday-run
+    [hasRules]="store.rules().length > 0"
+    [preview]="store.preview()"
+    [applied]="store.applied()"
+    [pots]="store.pots()"
+    [saving]="store.saving()"
+    [failure]="store.failureFor('run')"
+    (calculate)="calculate($event)"
+    (apply)="store.applyPreview()"
+    (discard)="store.discardPreview()"
+    (dismiss)="store.dismissApplied()"
+  />
+</ui-card>
+
+<ui-card>
+  <div class="card-top">
+    <h2>Scheduled outflows</h2>
+    <button
+      ui-button
+      variant="secondary"
+      type="button"
+      [attr.aria-expanded]="adding()"
+      (click)="toggleAdd()"
+    >
+      {{ adding() ? 'Close' : 'Add one' }}
+    </button>
+  </div>
+  <p class="muted">
+    Bills and payments you know are coming. Free-to-spend keeps back the ones that fall due before
+    your next payday.
+  </p>
+
+  @if (adding()) {
+  <app-scheduled-form
+    [saving]="store.saving()"
+    [failure]="store.failureFor('scheduled')"
+    (add)="add($event)"
+    (cancel)="toggleAdd()"
+  />
+  } @if (store.scheduled().length === 0) {
+  <ui-state-message
+    kind="empty"
+    title="Nothing scheduled"
+    description="Add rent, insurance or a subscription so it is counted before payday."
+  />
+  } @else {
+  <ul class="items">
+    @for (item of store.scheduled(); track item.id) {
+    <li>
+      <div class="what">
+        <span class="name">{{ item.name }}</span>
+        <span class="muted">{{ when(item) }}</span>
+      </div>
+      <ui-money [amount]="item.amountPaise" tone="neutral" />
+      @if (removing() === item.id) {
+      <div class="ask" role="group" [attr.aria-label]="'Remove ' + item.name">
+        <button
+          ui-button
+          variant="danger"
+          type="button"
+          [disabled]="store.saving()"
+          (click)="remove(item.id)"
+        >
+          Yes, remove it
+        </button>
+        <button
+          ui-button
+          variant="ghost"
+          type="button"
+          [disabled]="store.saving()"
+          (click)="removing.set(null)"
+        >
+          Keep
+        </button>
+      </div>
+      } @else {
+      <button
+        ui-button
+        variant="ghost"
+        type="button"
+        [attr.aria-label]="'Remove ' + item.name"
+        (click)="askRemove(item.id)"
+      >
+        Remove
+      </button>
+      }
+    </li>
+    }
+  </ul>
+  } @if (!adding()) { @if (store.failureFor('scheduled'); as text) {
+  <p class="problem" role="alert">{{ text }}</p>
+  } }
+</ui-card>
+} @default {
+<ui-state-message kind="loading" title="Loading your payday settings" />
+} }

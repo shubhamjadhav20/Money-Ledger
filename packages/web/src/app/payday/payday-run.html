@@ -1,0 +1,129 @@
+<form (submit)="$event.preventDefault(); submit()" novalidate>
+  <div class="field">
+    <label for="run-amount">This month's salary (₹)</label>
+    <input
+      class="control"
+      id="run-amount"
+      type="text"
+      inputmode="decimal"
+      autocomplete="off"
+      placeholder="85,000"
+      [value]="amount()"
+      (input)="onAmount($event)"
+      [attr.aria-invalid]="problem() ? 'true' : null"
+      [attr.aria-describedby]="problem() ? 'run-amount-err' : 'run-amount-hint'"
+    />
+    @if (problem(); as text) {
+    <p class="problem" id="run-amount-err">{{ text }}</p>
+    } @else {
+    <p class="hint" id="run-amount-hint">
+      @if (hasRules()) { Looking at the split changes nothing. } @else { Save your split above
+      first, then you can try a salary against it. }
+    </p>
+    }
+  </div>
+  <div class="actions">
+    <button ui-button variant="secondary" type="submit" [disabled]="saving() || !hasRules()">
+      Show the split
+    </button>
+  </div>
+</form>
+
+@if (preview(); as shown) {
+<section class="result" aria-label="The split">
+  <table>
+    <caption>
+      How
+      <ui-money [amount]="shown.amountPaise" tone="neutral" />
+      is split
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Line</th>
+        <th scope="col">Goes to</th>
+        <th scope="col" class="num">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (line of shown.split.allocations; track $index) {
+      <tr>
+        <th scope="row">{{ line.name }}</th>
+        <td>{{ potName(line.potId) }}</td>
+        <td class="num">
+          <ui-money [amount]="line.allocatedPaise" tone="neutral" />
+          @if (line.shortfallPaise > 0) {
+          <span class="short"
+            >short by <ui-money [amount]="line.shortfallPaise" tone="neutral"
+          /></span>
+          }
+        </td>
+      </tr>
+      } @if (shown.split.unallocatedPaise > 0) {
+      <tr>
+        <th scope="row">Not given to any line</th>
+        <td>Stays with you</td>
+        <td class="num"><ui-money [amount]="shown.split.unallocatedPaise" tone="neutral" /></td>
+      </tr>
+      }
+    </tbody>
+  </table>
+
+  @if (toPots().length === 0) {
+  <p class="hint">
+    None of this goes into a pot, so there is nothing to add. Choose a pot for a line in your split
+    to have it set aside.
+  </p>
+  <div class="actions">
+    <button ui-button variant="ghost" type="button" (click)="discard.emit()">Close</button>
+  </div>
+  } @else if (confirming()) {
+  <p class="confirm" role="group" aria-label="Confirm adding to pots">
+    Add <ui-money [amount]="toPotsTotal()" tone="neutral" /> to {{ plural(toPots().length, 'pot')
+    }}? Each pot's history will show a payday entry. A mistake is fixed with another entry, not by
+    deleting this one.
+  </p>
+  @if (failure(); as text) {
+  <p class="problem" role="alert">{{ text }}</p>
+  }
+  <div class="actions">
+    <button ui-button variant="primary" type="button" [disabled]="saving()" (click)="apply.emit()">
+      {{ saving() ? 'Adding…' : 'Yes, add it' }}
+    </button>
+    <button
+      ui-button
+      variant="ghost"
+      type="button"
+      [disabled]="saving()"
+      (click)="confirming.set(false)"
+    >
+      Back
+    </button>
+  </div>
+  } @else { @if (failure(); as text) {
+  <p class="problem" role="alert">{{ text }}</p>
+  }
+  <div class="actions">
+    <button ui-button variant="primary" type="button" (click)="confirming.set(true)">
+      Add to pots
+    </button>
+    <button ui-button variant="ghost" type="button" (click)="discard.emit()">Close</button>
+  </div>
+  }
+</section>
+} @else if (failure(); as text) {
+<p class="problem" role="alert">{{ text }}</p>
+} @if (applied(); as done) {
+<section class="done" role="status">
+  @if (done.replayed) {
+  <p>This payday was already added earlier. Nothing changed.</p>
+  } @else {
+  <p>Added to {{ plural(appliedToPots().length, 'pot') }}:</p>
+  <ul>
+    @for (line of appliedToPots(); track $index) {
+    <li>{{ potName(line.potId) }}: <ui-money [amount]="line.allocatedPaise" tone="neutral" /></li>
+    }
+  </ul>
+  }
+  <button ui-button variant="ghost" type="button" (click)="dismiss.emit()">Dismiss</button>
+</section>
+}

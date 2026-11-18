@@ -8,11 +8,15 @@ import {
   decodeImportPlan,
   decodeMissing,
   decodeCreatedId,
+  decodePaydayOutcome,
+  decodePaydayRules,
+  decodePaydaySplit,
   decodePot,
   decodePotMovements,
   decodePots,
   decodeReconcile,
   decodeScheduled,
+  decodeSettings,
   decodeSummary,
   decodeTransaction,
   decodeTransactions,
@@ -27,9 +31,13 @@ import {
   IMPORT_PLAN_JSON,
   MISSING_JSON,
   MOVEMENTS_JSON,
+  PAYDAY_OUTCOME_JSON,
+  PAYDAY_RULES_JSON,
+  PAYDAY_SPLIT_JSON,
   POTS_JSON,
   RECONCILE_JSON,
   SCHEDULED_JSON,
+  SETTINGS_JSON,
   SUMMARY_JSON,
   TRANSACTIONS_JSON,
 } from '../../testing-api';
@@ -328,5 +336,70 @@ describe('capture decoder', () => {
     expect(() =>
       decodeCaptured({ ...CAPTURE_JSON, entry: { ...CAPTURE_JSON.entry, kind: 'transfer' } }),
     ).toThrow(/capture.entry.kind/);
+  });
+});
+
+describe('settings decoder', () => {
+  it('reads the three settings', () => {
+    expect(decodeSettings(SETTINGS_JSON)).toEqual({
+      paydayDay: 7,
+      paydayWeekend: 'previous-weekday',
+      cardExposure: 'all_outstanding',
+    });
+  });
+
+  it('rejects a value outside the allowed choices, naming the field', () => {
+    expect(() => decodeSettings({ ...SETTINGS_JSON, paydayWeekend: 'next-weekday' })).toThrow(
+      /settings.paydayWeekend/,
+    );
+    expect(() => decodeSettings({ ...SETTINGS_JSON, paydayDay: 7.5 })).toThrow(
+      /settings.paydayDay/,
+    );
+  });
+});
+
+describe('payday decoders', () => {
+  it('reads the stored rules in order, one shape per kind', () => {
+    expect(decodePaydayRules(PAYDAY_RULES_JSON)).toEqual([
+      {
+        id: 'r-1',
+        name: 'Emergency buffer',
+        kind: 'fixed',
+        amountPaise: 500_000,
+        potId: 'pot-buffer',
+      },
+      { id: 'r-2', name: 'Investing', kind: 'percent', basisPoints: 2_000, potId: null },
+      { id: 'r-3', name: 'Spending', kind: 'remainder', potId: null },
+    ]);
+  });
+
+  it('rejects a rule with the wrong amount, naming the field', () => {
+    const items = [{ id: 'r', rule: { name: 'x', kind: 'fixed', amountPaise: 1.5 } }];
+    expect(() => decodePaydayRules({ items })).toThrow(/rule.amountPaise/);
+    expect(() =>
+      decodePaydayRules({ items: [{ id: 'r', rule: { name: 'x', kind: 'weird' } }] }),
+    ).toThrow(/rule.kind/);
+  });
+
+  it('reads a split, with a missing pot as none', () => {
+    const split = decodePaydaySplit(PAYDAY_SPLIT_JSON);
+    expect(split.allocations.map((a) => [a.name, a.potId, a.allocatedPaise])).toEqual([
+      ['Emergency buffer', 'pot-buffer', 500_000],
+      ['Investing', null, 1_600_000],
+      ['Spending', null, 5_900_000],
+    ]);
+    expect(split.unallocatedPaise).toBe(0);
+  });
+
+  it('reads what applying did, and rejects a missing flag', () => {
+    const outcome = decodePaydayOutcome(PAYDAY_OUTCOME_JSON);
+    expect([outcome.runId, outcome.replayed, outcome.result.allocations.length]).toEqual([
+      'run-1',
+      false,
+      3,
+    ]);
+    expect(() => decodePaydayOutcome({ runId: 'x', result: PAYDAY_SPLIT_JSON })).toThrow(
+      /outcome.replayed/,
+    );
   });
 });

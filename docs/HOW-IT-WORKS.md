@@ -6,7 +6,7 @@ rules Claude Code follows, see `CLAUDE.md`.
 
 **Status:** the core logic (M0 to M3.5), the database, import and quick-add service (M4a), the HTTP
 API with scoped tokens and audit log (M4b), a runnable server (M4b-2a) and the web app's screens
-(M5a to M5g: Dashboard, Transactions, Import, Pots, Reconcile and Quick add) are built. The MCP
+(M5a to M5h: Dashboard, Transactions, Import, Pots, Reconcile, Quick add and Payday) are built. The MCP
 server and the Telegram bot are not built yet (see section 11).
 
 ## 1. What it is
@@ -279,14 +279,14 @@ generated; real statements are never committed (the repository is public, and gi
 
 ## 10b. The web app (`packages/web`)
 
-So far: the look and the parts every screen is built from, plus seven real screens: **Connect**,
-the **Dashboard**, **Transactions**, **Import**, **Reconcile**, **Pots** and **Quick add**.
+So far: the look and the parts every screen is built from, plus eight real screens: **Connect**,
+the **Dashboard**, **Transactions**, **Import**, **Reconcile**, **Pots**, **Payday** and **Quick add**.
 
 - **The look.** Deep ink-green neutrals, one saturated "ledger green" block per screen (the
   Dashboard's free-to-spend hero), and a single marigold accent used for the primary button, the
   active tab and the payday marker. Numbers are set in Bricolage Grotesque, body text in Figtree.
   Both are self-hosted font files (no request to a font service) and both draw the ₹ sign.
-- **Navigation.** On a phone, a tab bar at the bottom with an icon and a label for each screen, and
+- **Navigation.** On a phone, a tab bar at the bottom (six tabs; the labels shrink a little on a narrow phone so "Transactions" still fits) with an icon and a label for each screen, and
   a slim bar at the top. On a wide screen, a sidebar on the left. A marigold **Quick add** button
   floats above the tab bar on a phone and sits under the brand in the sidebar; it hides itself on the
   Quick add screen. The Gallery is a development page, so on a phone it is reached by address only.
@@ -427,6 +427,35 @@ shows the result and changes nothing, so it works with a read-only token.
 - Names from the bank are shown as plain text, never as markup. A payment the API did not describe
   is left out of its card instead of being shown wrong.
 
+**Payday** (`/payday`) is where you tell the app when you are paid and where the salary goes, and
+where you list the outflows you already know about. The Dashboard counts days to payday and keeps
+bills out of free-to-spend from what is set here. Four cards:
+- **When you are paid.** The payday day (1 to 31), what happens when that day is a weekend, and which
+  card bills free-to-spend keeps out of reach (everything you owe on cards, or only the bills due
+  before payday). Only what you changed is sent. The weekend choice offers "on the day" or "the Friday
+  before"; "the Monday after" is not supported (it would be a change to the payday rule in core), and
+  the screen says so.
+- **Where your salary goes.** An ordered list of lines. Each takes a fixed amount, a share of the
+  salary (a percentage, read without floating-point maths: 12.5 means 1,250 basis points), or whatever
+  is left, and can drop its share into one of your pots. A line with no pot simply stays with you.
+  You edit a draft (add, remove, move up or down) and nothing is saved until Save. The same checks
+  the server runs (shares over 100%, the "whatever is left" line must be last, only one of it) show
+  before anything is sent.
+- **Try a payday.** Type this month's salary and see exactly how the saved split divides it, line by
+  line, with any shortfall. Looking changes nothing. Adding it to the pots asks first, names the total
+  and the number of pots, and then writes one payday entry per pot. Each run carries its own id, so a
+  second click, or a retry after a dropped connection, changes nothing and says "already added". A
+  mistake is fixed with another pot entry (the history is append-only), not by deleting the first.
+  The date of the entry is today, decided by the server.
+- **Scheduled outflows.** Your known bills, each repeating on a day of the month or happening once
+  on a date. Add one, or remove one (it asks twice, since a removal cannot be undone).
+
+Everything here uses endpoints that already existed. Reading works with a read-only token; saving,
+adding to the pots and the scheduled list need a full-access token, and with a read-only token a
+change shows a clear message. Card statement and due days are not editable here: no route changes
+them, so for now they are set with the admin command, and a route would be a new write endpoint that
+needs your go-ahead first.
+
 **Quick add** (`/quick-add`) is the fastest way to log a payment: an amount, a category, how you
 paid and when. It works with the same one-line grammar as the API and the future Telegram bot
 (section 3, "The quick-add grammar"), so you never need to learn it: the form writes the line for you.
@@ -457,7 +486,7 @@ paid and when. It works with the same one-line grammar as the API and the future
 ## 11. Not built yet
 
 - Web login (argon2id, cookie session, CSRF) arrives with the Angular app.
-- M5, remaining: the payday split (preview and apply) and scheduled items have no screen yet, confirming or rejecting a reconcile match needs a new endpoint first, and Quick add is not yet installable on a phone's home screen (offline queue and service worker need a dependency decision).
+- M5, remaining: confirming or rejecting a reconcile match needs a new endpoint first, editing a card's statement and due days needs a new endpoint too, "the Monday after" is not a weekend choice for payday yet, and Quick add is not yet installable on a phone's home screen (offline queue and service worker need a dependency decision).
 - M6: local MCP server so Claude can answer "can I buy this on Slice in 3?" from your real numbers.
 - M7: public demo with generated data. M8: private deployment and the Telegram bot.
 

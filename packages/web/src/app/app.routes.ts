@@ -40,6 +40,12 @@ export const routes: Routes = [
     loadComponent: () => import('./pots/pots').then((m) => m.Pots),
   },
   {
+    path: 'payday',
+    title: 'Payday · Ledger',
+    canActivate: [connectedOnly],
+    loadComponent: () => import('./payday/payday').then((m) => m.Payday),
+  },
+  {
     path: 'quick-add',
     title: 'Quick add · Ledger',
     canActivate: [signedIn],

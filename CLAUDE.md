@@ -56,7 +56,9 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 
 **M5g done (branch `feat/m5g-quick-add`):** `/quick-add`: amount in the green panel, Spent/Received, category (+ recent chips), note, method and day chips, a live read of the line with core's `parseCapture`, a just-added list, optional Account choice for tokens that can read. A capture-only token (Connect's read check gets 403) opens only this screen. No new endpoint, scope or dependency. 450 web tests. CI audit ignores GHSA-fc5q-39xc-vjpf (picomatch, no patched release, dev tooling only): remove it from `pnpm-workspace.yaml` once picomatch ships a fix.
 
-**Next:** the payday split and scheduled items have no screen yet; confirming or rejecting a reconcile match needs a new endpoint (explicit go-ahead). Then M6 (MCP server). Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
+**M5h done (branch `feat/m5h-payday`):** `/payday`: payday day, weekend rule and card exposure; the payday split as an editable draft (fixed / share / the rest, each into an optional pot) with core's validation; "try a payday" (preview, then confirm to add to pots, idempotent by run id); scheduled outflows (list, add, remove). Sixth tab in the nav. No new endpoint, scope or dependency. 600 web tests.
+
+**Next:** M6 (MCP server). Still gated on an explicit go-ahead: confirming or rejecting a reconcile match (new endpoint) and editing a card's statement and due days (new endpoint). Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
 
 **Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `planning-service` `planning-routes` `analysis-service` `analysis-routes` `transaction-view` `http-support` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
 
@@ -66,4 +68,4 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 - Upgrade Node to `>=24.15` before M5 (Angular 22).
 - Install gitleaks locally (`winget install Gitleaks.Gitleaks`); until then the pre-commit hook only warns (CI still scans).
 - Verify Slice in 3 minimum amount and fees in the app (`SLICE_IN_3` in `simulate.ts` is a TODO).
-- Confirm payday day, whether payday shifts on weekends, and each card's statement day and due day (placeholders until then).
+- Payday day is confirmed as the 7th. Tell me which way pay moves when the 7th is a weekend (earlier, later, or it varies): only "the Friday before" and "on the day" are supported today. Also each card's statement day and due day (placeholders until then).

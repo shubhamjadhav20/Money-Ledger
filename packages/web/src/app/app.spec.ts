@@ -47,6 +47,7 @@ describe('App shell', () => {
       'Import',
       'Reconcile',
       'Pots',
+      'Payday',
       'Gallery',
     ]);
     expect(query(nav, 'button').textContent.trim()).toBe('Disconnect');
@@ -116,16 +117,22 @@ describe('App shell', () => {
 });
 
 describe('Routing', () => {
-  it.each(['/', '/dashboard', '/transactions', '/import', '/reconcile', '/pots', '/nowhere'])(
-    '%s asks a signed-out visitor to connect',
-    async (url) => {
-      const { router } = setup();
-      const harness = await RouterTestingHarness.create();
-      await harness.navigateByUrl(url);
-      expect(router.url).toBe('/connect');
-      expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toContain('Connect');
-    },
-  );
+  it.each([
+    '/',
+    '/dashboard',
+    '/transactions',
+    '/import',
+    '/reconcile',
+    '/pots',
+    '/payday',
+    '/nowhere',
+  ])('%s asks a signed-out visitor to connect', async (url) => {
+    const { router } = setup();
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl(url);
+    expect(router.url).toBe('/connect');
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toContain('Connect');
+  });
 
   it.each(['/', '/connect', '/nowhere'])(
     '%s lands a connected visitor on the dashboard',
@@ -155,16 +162,22 @@ describe('Routing', () => {
     expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toContain('Quick add');
   });
 
-  it.each(['/', '/connect', '/nowhere', '/dashboard', '/transactions', '/import', '/pots'])(
-    '%s sends a capture-only visitor to quick-add',
-    async (url) => {
-      const { auth, router } = setup();
-      auth.connect('tok', { captureOnly: true });
-      const harness = await RouterTestingHarness.create();
-      await harness.navigateByUrl(url);
-      expect(router.url).toBe('/quick-add');
-    },
-  );
+  it.each([
+    '/',
+    '/connect',
+    '/nowhere',
+    '/dashboard',
+    '/transactions',
+    '/import',
+    '/pots',
+    '/payday',
+  ])('%s sends a capture-only visitor to quick-add', async (url) => {
+    const { auth, router } = setup();
+    auth.connect('tok', { captureOnly: true });
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl(url);
+    expect(router.url).toBe('/quick-add');
+  });
 
   it('serves the component gallery without a token', async () => {
     const { router } = setup();

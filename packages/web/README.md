@@ -1,6 +1,6 @@
 # @ledger/web
 
-The Angular app: dashboard, import, transactions, reconcile, pots and quick-add. It talks to the API
+The Angular app: dashboard, import, transactions, reconcile, pots, payday and quick-add. It talks to the API
 (`packages/api`) with scoped tokens only and never holds database credentials.
 
 Angular 22 (needs Node 24.15 or newer), standalone components, Signals, zoneless, `OnPush` everywhere,
@@ -37,6 +37,9 @@ pnpm --filter @ledger/web build   # production build into packages/web/dist
   ambiguity picker. Statement layouts come from core's `DEMO_MAPPINGS`.
 - `src/app/pots/`: `/pots`, its store (`PotsStore`), the pot form (create and edit), the move-money form
   and the labels.
+- `src/app/payday/`: `/payday`, its store (`PaydayStore`; the run id comes from the `NEW_RUN_ID` token so
+  specs can fix it), the settings form, the split editor, the try-a-payday card, the scheduled form,
+  and `percent.ts` (text to basis points with no floats).
 - `src/app/reconcile/`: `/reconcile` (read only), its store (`ReconcileStore`) and `grouping.ts`, which
   turns the API's bundles and review queue into the cards the screen shows.
 - `src/app/quick-add/`: `/quick-add`, its store (`QuickAddStore`) and `compose.ts`, which turns the
