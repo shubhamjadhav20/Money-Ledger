@@ -55,7 +55,7 @@ describe('Import screen', () => {
       expect([...root.querySelectorAll('label')].map((l) => text(l))).toEqual([
         'Account',
         'Statement layout',
-        'Statement file (CSV)',
+        'Statement file (CSV or PDF)',
       ]);
       const accounts = [...root.querySelectorAll('#imp-account option')].map((o) => text(o));
       expect(accounts).toEqual(['Choose an account', 'HDFC Bank', 'ICICI card']);
@@ -65,7 +65,9 @@ describe('Import screen', () => {
         'FakeBank savings (demo)',
         'DemoCard credit card (demo)',
       ]);
-      expect((query(root, '#imp-file') as HTMLInputElement).accept).toBe('.csv,text/csv');
+      expect((query(root, '#imp-file') as HTMLInputElement).accept).toBe(
+        '.csv,text/csv,.pdf,application/pdf',
+      );
     });
 
     it('keeps Preview disabled until an account, a layout and a file are chosen', async () => {
