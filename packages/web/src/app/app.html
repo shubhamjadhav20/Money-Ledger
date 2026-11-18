@@ -1,5 +1,5 @@
 <a class="skip-link" href="#main">Skip to content</a>
-<div class="shell" [class.connected]="auth.connected()">
+<div class="shell" [class.connected]="auth.connected()" [class.limited]="auth.captureOnly()">
   <div class="side">
     <header class="bar">
       <span class="brand">Ledger<span class="dot" aria-hidden="true">.</span></span>
@@ -10,8 +10,13 @@
       </button>
       }
     </header>
+    @if (auth.connected()) {
+    <a class="quick" routerLink="/quick-add" routerLinkActive="active" ariaCurrentWhenActive="page"
+      ><ui-icon name="plus" /><span>Quick add</span></a
+    >
+    }
     <nav aria-label="Main">
-      @if (auth.connected()) {
+      @if (auth.connected() && !auth.captureOnly()) {
       <a routerLink="/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page"
         ><ui-icon name="home" /><span>Dashboard</span></a
       >

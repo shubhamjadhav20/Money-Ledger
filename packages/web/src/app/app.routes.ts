@@ -1,5 +1,5 @@
 import type { Routes } from '@angular/router';
-import { connectedOnly, disconnectedOnly } from './guards';
+import { connectedOnly, disconnectedOnly, signedIn } from './guards';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -38,6 +38,12 @@ export const routes: Routes = [
     title: 'Pots · Ledger',
     canActivate: [connectedOnly],
     loadComponent: () => import('./pots/pots').then((m) => m.Pots),
+  },
+  {
+    path: 'quick-add',
+    title: 'Quick add · Ledger',
+    canActivate: [signedIn],
+    loadComponent: () => import('./quick-add/quick-add').then((m) => m.QuickAdd),
   },
   {
     path: 'gallery',
