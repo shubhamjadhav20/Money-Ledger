@@ -8,10 +8,11 @@ import { UiStateMessage } from '../ui/state-message';
 import { DashboardStore } from './dashboard-store';
 import type { BalanceEntry } from './dashboard-store';
 import { RecordBalances } from './record-balances';
+import { Runway } from './runway';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RecordBalances, UiBadge, UiButton, UiCard, UiMoney, UiStateMessage],
+  imports: [RecordBalances, Runway, UiBadge, UiButton, UiCard, UiMoney, UiStateMessage],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
