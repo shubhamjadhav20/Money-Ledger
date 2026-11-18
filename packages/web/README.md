@@ -17,17 +17,20 @@ pnpm --filter @ledger/web build   # production build into packages/web/dist
 
 - `src/styles/tokens.css`: every colour, size, radius and duration. Dark first; light follows the OS
   or the user's choice. `tokens.spec.ts` checks the contrast of every text/surface pair (WCAG AA).
-- `src/styles/base.css`: reset, focus ring, `tabular-nums` for money, reduced-motion.
-- `src/app/ui/`: the small component set (`ui-money`, `ui-card`, `ui-badge`, `ui-state-message`,
-  `button[ui-button]`, `button[ui-chip]`). Screens are built from these.
+- `src/styles/fonts.css` and `public/fonts/`: the two self-hosted font families and their licences.
+  Third-party notices (fonts, icons) are in `THIRD-PARTY.md`.
+- `src/styles/base.css`: reset, focus ring, `tabular-nums` for money, the shared progress-bar and
+  file-picker styles, reduced-motion.
+- `src/app/ui/`: the small component set (`ui-money`, `ui-card`, `ui-badge`, `ui-icon`,
+  `ui-state-message`, `button[ui-button]`, `button[ui-chip]`). Screens are built from these.
 - `src/app/gallery/`: `/gallery` shows all of them in both themes with made-up data.
 - `src/app/theme.ts`: the theme choice (signal), remembered per device when storage allows.
 - `src/app/api/`: the API client. `decode.ts` / `models.ts` check every response (money must be a safe
   integer, dates real calendar dates) before it reaches a screen; `api-client.ts` turns failures into
   one `ApiError` shape; `auth.ts` keeps the token in memory only and adds it to `/api/` calls only.
 - `src/app/connect/`: `/connect`, where an API token is pasted (interim, until the cookie-session login).
-- `src/app/dashboard/`: `/dashboard`, its store (`DashboardStore`), the schedule expansion and the
-  starting-balances form.
+- `src/app/dashboard/`: `/dashboard`, its store (`DashboardStore`), the payday runway drawing
+  (`runway.ts`), the schedule expansion and the starting-balances form.
 - `src/app/transactions/`: `/transactions`, its store (`TransactionsStore`), the edit form and the
   kind/method/status labels. `src/app/month.ts` has the month helpers.
 - `src/app/import/`: `/import`, its store (`ImportStore`: the file lives only here), the screen with the

@@ -153,3 +153,27 @@ td.date {
     margin-top: var(--space-1);
   }
 }
+
+.hero-demo {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  background: var(--color-hero);
+  color: var(--color-on-hero-muted);
+  border-radius: var(--radius-xl);
+}
+
+.icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.icons li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}

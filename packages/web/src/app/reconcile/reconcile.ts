@@ -5,6 +5,7 @@ import { formatDay } from '../format';
 import { formatMonth } from '../month';
 import { UiBadge } from '../ui/badge';
 import { UiButton } from '../ui/button';
+import { UiIcon } from '../ui/icon';
 import { UiCard } from '../ui/card';
 import { UiMoney } from '../ui/money';
 import { UiStateMessage } from '../ui/state-message';
@@ -23,7 +24,7 @@ const REVIEW_TEXT: Readonly<Record<UnmatchedReason, string>> = {
  */
 @Component({
   selector: 'app-reconcile',
-  imports: [RouterLink, UiBadge, UiButton, UiCard, UiMoney, UiStateMessage],
+  imports: [RouterLink, UiBadge, UiButton, UiCard, UiMoney, UiStateMessage, UiIcon],
   providers: [ReconcileStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reconcile.html',

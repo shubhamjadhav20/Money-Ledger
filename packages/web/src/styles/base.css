@@ -23,7 +23,10 @@ h1,
 h2,
 h3 {
   margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
+  letter-spacing: -0.01em;
 }
 
 p {
@@ -43,16 +46,78 @@ a {
   background: var(--color-surface-1);
   color: var(--color-text);
   font: inherit;
+  transition: border-color var(--duration-fast) var(--ease);
+}
+
+.control:hover {
+  border-color: var(--color-text-muted);
+}
+
+/* The file picker's own button, drawn like our buttons. */
+input[type='file'] {
+  padding: var(--space-2) var(--space-3);
+}
+
+input[type='file']::file-selector-button {
+  margin-right: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-3);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+input[type='file']::file-selector-button:hover {
+  background: var(--color-border-strong);
+}
+
+::selection {
+  background: var(--color-accent-fill);
+  color: var(--color-on-accent);
 }
 
 .control[aria-invalid='true'] {
   border-color: var(--color-negative);
 }
 
-/* Every amount of money, everywhere: digits line up in columns. */
+/* A progress bar for how full something is. Colour is never the only signal: a label sits beside it. */
+meter {
+  display: block;
+  width: 100%;
+  height: 0.5rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-3);
+  appearance: none;
+}
+
+meter::-webkit-meter-bar {
+  height: 0.5rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-3);
+}
+
+meter::-webkit-meter-optimum-value,
+meter::-webkit-meter-suboptimum-value,
+meter::-webkit-meter-even-less-good-value {
+  border-radius: var(--radius-pill);
+  background: var(--color-positive);
+}
+
+meter::-moz-meter-bar {
+  border-radius: var(--radius-pill);
+  background: var(--color-positive);
+}
+
+/* Every amount of money, everywhere: digits line up in columns, set in the display face. */
 .money,
 td.num,
 th.num {
+  font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
 }
 

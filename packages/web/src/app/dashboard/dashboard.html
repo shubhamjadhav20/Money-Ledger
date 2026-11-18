@@ -39,53 +39,51 @@
   />
 </ui-card>
 } @if (store.view(); as view) {
-<div class="summary">
-  <ui-card class="hero">
+<section class="hero" aria-label="Free to spend">
+  <div class="hero-top">
     <p class="label">Free to spend until payday</p>
-    <ui-money [amount]="view.freePaise" size="display" />
-    <p class="muted">
-      {{ plural(view.daysToPayday, 'day') }} to payday, {{ formatDay(view.nextPayday) }}
-    </p>
-    @for (warning of view.warnings; track warning) {
-    <p class="warning" role="status">{{ warning }}</p>
-    }
-  </ui-card>
-
-  @if (store.forecast(); as forecast) {
-  <ui-card>
-    <h2>Forecast</h2>
-    @if (forecast.runwayDays === null) {
-    <p>No spending recorded in the last {{ forecast.windowDays }} days.</p>
-    } @else {
-    <p>
-      Spending about <ui-money [amount]="forecast.burnPaisePerDay" tone="neutral" /> a day (last {{
-      forecast.windowDays }} days).
-    </p>
-    }
-    <p>
-      Expected free on payday:
-      <ui-money [amount]="forecast.projectedFreePaise" />
-    </p>
-    @if (view.freePaise <= 0) {
-    <p>
-      <ui-badge tone="negative">Nothing free</ui-badge>
-      Your reserves and bills already use up everything you have until payday.
-    </p>
+    @if (store.forecast(); as forecast) { @if (view.freePaise <= 0) {
+    <span class="pill bad">Nothing free</span>
     } @else if (forecast.runwayDays !== null) { @if (forecast.runwayDays < forecast.daysToPayday) {
-    <p>
-      <ui-badge tone="negative">Runs out early</ui-badge>
-      At this pace your free money lasts {{ plural(forecast.runwayDays, 'day') }}, {{
-      plural(forecast.daysToPayday - forecast.runwayDays, 'day') }} short of payday.
-    </p>
+    <span class="pill bad">Runs out early</span>
     } @else {
-    <p>
-      <ui-badge tone="positive">Lasts to payday</ui-badge>
-      At this pace it lasts {{ plural(forecast.runwayDays, 'day') }}.
-    </p>
-    } }
-  </ui-card>
-  }
-</div>
+    <span class="pill good">Lasts to payday</span>
+    } } }
+  </div>
+  <ui-money [amount]="view.freePaise" size="display" tone="neutral" />
+  <p class="when">
+    {{ plural(view.daysToPayday, 'day') }} to payday, {{ formatDay(view.nextPayday) }}
+  </p>
+  @for (warning of view.warnings; track warning) {
+  <p class="warning" role="status">{{ warning }}</p>
+  } @if (store.forecast(); as forecast) {
+  <app-runway [free]="view.freePaise" [projected]="forecast.projectedFreePaise" />
+  <div class="facts">
+    <div>
+      @if (forecast.runwayDays === null) {
+      <p class="fact-note">No spending recorded in the last {{ forecast.windowDays }} days.</p>
+      } @else {
+      <p class="fact-label">Spending a day</p>
+      <ui-money [amount]="forecast.burnPaisePerDay" tone="neutral" size="lg" />
+      <p class="fact-note">over the last {{ forecast.windowDays }} days</p>
+      }
+    </div>
+    <div>
+      <p class="fact-label">Expected free on payday</p>
+      <ui-money [amount]="forecast.projectedFreePaise" tone="neutral" size="lg" />
+    </div>
+  </div>
+  @if (view.freePaise <= 0) {
+  <p class="verdict">Your reserves and bills already use up everything you have until payday.</p>
+  } @else if (forecast.runwayDays !== null) { @if (forecast.runwayDays < forecast.daysToPayday) {
+  <p class="verdict">
+    At this pace your free money lasts {{ plural(forecast.runwayDays, 'day') }}, {{
+    plural(forecast.daysToPayday - forecast.runwayDays, 'day') }} short of payday.
+  </p>
+  } @else {
+  <p class="verdict">At this pace it lasts {{ plural(forecast.runwayDays, 'day') }}.</p>
+  } } }
+</section>
 
 <ui-card class="breakdown">
   <h2>How this is worked out</h2>
@@ -97,6 +95,10 @@
     </li>
     }
   </ul>
+  <p class="total">
+    <span>Free to spend</span>
+    <ui-money [amount]="view.freePaise" tone="neutral" size="lg" />
+  </p>
 </ui-card>
 
 <section aria-labelledby="d-pots">
@@ -108,25 +110,36 @@
     description="Pots set money aside for a buffer or a bill. Make one from Pots in the menu."
   />
   } @else {
-  <div class="grid pots">
-    @for (pot of store.pots(); track pot.id) {
-    <ui-card>
-      <p class="label">{{ pot.name }} <ui-badge>{{ pot.kind }}</ui-badge></p>
-      <ui-money [amount]="pot.balancePaise" size="lg" tone="neutral" />
-      @if (pot.targetPaise !== null) {
-      <p class="muted">of <ui-money [amount]="pot.targetPaise" tone="neutral" /> target</p>
-      <meter
-        min="0"
-        max="100"
-        [value]="percent(pot.balancePaise, pot.targetPaise)"
-        [attr.aria-label]="pot.name + ' funded'"
-      ></meter>
-      } @if (pot.dueDate !== null) {
-      <p class="muted">Due {{ formatDay(pot.dueDate) }}</p>
+  <ui-card>
+    <ul class="pot-list">
+      @for (pot of store.pots(); track pot.id) {
+      <li>
+        <div class="pot-head">
+          <span class="pot-name">{{ pot.name }} <ui-badge>{{ pot.kind }}</ui-badge></span>
+          <ui-money [amount]="pot.balancePaise" tone="neutral" size="lg" />
+        </div>
+        @if (pot.targetPaise !== null) {
+        <meter
+          min="0"
+          max="100"
+          [value]="percent(pot.balancePaise, pot.targetPaise)"
+          [attr.aria-label]="pot.name + ' funded'"
+        ></meter>
+        <p class="pot-note">
+          <span>of <ui-money [amount]="pot.targetPaise" tone="neutral" /> target</span>
+          @if (pot.dueDate !== null) {
+          <span>Due {{ formatDay(pot.dueDate) }}</span>
+          }
+        </p>
+        } @else if (pot.dueDate !== null) {
+        <p class="pot-note">
+          <span>Due {{ formatDay(pot.dueDate) }}</span>
+        </p>
+        }
+      </li>
       }
-    </ui-card>
-    }
-  </div>
+    </ul>
+  </ui-card>
   }
 </section>
 
@@ -136,18 +149,20 @@
     @if (store.cardDues().length === 0) {
     <p class="muted">No card balance owed.</p>
     } @else {
-    <ul class="lines card-lines">
-      @for (due of store.cardDues(); track due.accountId) {
-      <li>
-        <span
-          >{{ due.name }}<br /><small class="muted"
-            >next due {{ formatDay(due.nextDue) }}</small
-          ></span
-        >
-        <ui-money [amount]="due.owedPaise" tone="neutral" />
-      </li>
-      }
-    </ul>
+    <ui-card>
+      <ul class="lines">
+        @for (due of store.cardDues(); track due.accountId) {
+        <li>
+          <span
+            >{{ due.name }}<br /><small class="muted"
+              >next due {{ formatDay(due.nextDue) }}</small
+            ></span
+          >
+          <ui-money [amount]="due.owedPaise" tone="neutral" />
+        </li>
+        }
+      </ul>
+    </ui-card>
     }
   </section>
 
@@ -156,14 +171,16 @@
     @if (store.upcoming().length === 0) {
     <p class="muted">Nothing scheduled before payday.</p>
     } @else {
-    <ul class="lines card-lines">
-      @for (item of store.upcoming(); track item.id + item.date) {
-      <li>
-        <span>{{ item.name }}<br /><small class="muted">{{ formatDay(item.date) }}</small></span>
-        <ui-money [amount]="item.amountPaise" tone="neutral" />
-      </li>
-      }
-    </ul>
+    <ui-card>
+      <ul class="lines">
+        @for (item of store.upcoming(); track item.id + item.date) {
+        <li>
+          <span>{{ item.name }}<br /><small class="muted">{{ formatDay(item.date) }}</small></span>
+          <ui-money [amount]="item.amountPaise" tone="neutral" />
+        </li>
+        }
+      </ul>
+    </ui-card>
     }
   </section>
 </div>

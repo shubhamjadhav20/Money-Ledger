@@ -2,49 +2,68 @@
  * Design tokens: the only place raw colours, sizes and radii are written down. Components use
  * `var(--token)` and never a literal value, so a theme change is a change to this file.
  *
- * Dark is the default. Light applies when the OS asks for it (and the user has not picked dark) or
- * when the user picks it (`data-theme="light"` on <html>, set by ThemeService).
+ * The look: ink-green neutrals, one deep "ledger green" block per screen (the hero), and marigold
+ * as the single accent. Dark is the default. Light applies when the OS asks for it (and the user
+ * has not picked dark) or when the user picks it (`data-theme="light"` on <html>, set by
+ * ThemeService).
  *
  * Text colours are checked against their surfaces in `tokens.spec.ts` (WCAG AA, 4.5:1).
  * Semantic colours (positive / negative / warning / accent) are for text on --color-bg,
  * --color-surface-1 and --color-surface-2 only; --color-surface-3 is for hover and control fills.
+ * `--color-accent` is the accent as TEXT; `--color-accent-fill` is the accent as a FILL (buttons,
+ * selected chips) with `--color-on-accent` text on it. The `hero` colours are a separate pair of
+ * surface and text colours for the one saturated block on a screen.
  */
 :root {
   color-scheme: dark;
 
   /* colour: surfaces */
-  --color-bg: #0e1116;
-  --color-surface-1: #151a21;
-  --color-surface-2: #1c232c;
-  --color-surface-3: #252e39;
+  --color-bg: #0a1211;
+  --color-surface-1: #111c1a;
+  --color-surface-2: #172623;
+  --color-surface-3: #20322e;
   /* colour: lines. `border` is decoration; `border-strong` is a control boundary (3:1 needed) */
-  --color-border: #2c3643;
-  --color-border-strong: #7d8a99;
+  --color-border: #223530;
+  --color-border-strong: #6f8c85;
   /* colour: text */
-  --color-text: #e8edf3;
-  --color-text-muted: #a3afbd;
+  --color-text: #e8f1ed;
+  --color-text-muted: #9db3ad;
   /* colour: meaning */
-  --color-accent: #6ea8fe;
-  --color-on-accent: #0b1220;
-  --color-positive: #4cc38a;
-  --color-negative: #ff7b72;
-  --color-warning: #e3b341;
-  --color-focus: #6ea8fe;
+  --color-accent: #f5b83d;
+  --color-accent-fill: #f5b83d;
+  --color-on-accent: #1b1303;
+  --color-positive: #5ed3a0;
+  --color-negative: #ff8c7a;
+  --color-warning: #ffa65c;
+  --color-focus: #f5b83d;
+  /* colour: the hero block (same in both themes, so it reads as one object) */
+  --color-hero: #0d3b34;
+  --color-on-hero: #eaf7f1;
+  --color-on-hero-muted: #a9cbbf;
+  --color-hero-line: #2f6b5e;
+  --color-hero-accent: #f5b83d;
+  --color-hero-good: #7ee2b8;
+  --color-hero-bad: #ff9a8a;
 
   /* type */
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+  --font-display:
+    'Bricolage Grotesque', 'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system,
+    sans-serif;
+  --font-sans:
+    'Figtree', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto,
+    'Helvetica Neue', Arial, sans-serif;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-md: 1rem;
   --text-lg: 1.25rem;
   --text-xl: 1.75rem;
-  --text-display: 2.75rem;
-  --leading-tight: 1.2;
+  --text-display: clamp(2.5rem, 11vw, 4.5rem);
+  --leading-tight: 1.15;
   --leading-normal: 1.5;
   --weight-regular: 400;
-  --weight-medium: 500;
+  --weight-medium: 550;
   --weight-bold: 700;
+  --tracking-display: -0.02em;
 
   /* space: a 4px scale */
   --space-1: 0.25rem;
@@ -56,12 +75,13 @@
   --space-7: 3rem;
   --space-8: 4rem;
 
-  /* shape and depth */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.625rem;
-  --radius-lg: 1rem;
+  /* shape: small controls are tighter than the big blocks, on purpose */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
   --radius-pill: 999px;
-  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-1: none;
 
   /* motion */
   --duration-fast: 120ms;
@@ -69,46 +89,62 @@
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
   /* layout */
-  --content-width: 72rem;
+  --content-width: 64rem;
+  --sidebar-width: 15rem;
+  --bottom-nav-height: 4.25rem;
   --tap-target: 2.75rem;
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme='dark']) {
     color-scheme: light;
-    --color-bg: #f6f8fa;
+    --color-bg: #f2f5f2;
     --color-surface-1: #ffffff;
-    --color-surface-2: #eef1f5;
-    --color-surface-3: #e1e6ec;
-    --color-border: #d5dbe3;
-    --color-border-strong: #6b7785;
-    --color-text: #14202b;
-    --color-text-muted: #4a5866;
-    --color-accent: #0b5cd5;
-    --color-on-accent: #ffffff;
+    --color-surface-2: #e9efea;
+    --color-surface-3: #dce5de;
+    --color-border: #d2dcd5;
+    --color-border-strong: #5f7a72;
+    --color-text: #10201c;
+    --color-text-muted: #4a605a;
+    --color-accent: #8a5300;
+    --color-accent-fill: #f5b83d;
+    --color-on-accent: #1b1303;
     --color-positive: #12794a;
     --color-negative: #b42318;
-    --color-warning: #8a5a00;
-    --color-focus: #0b5cd5;
-    --shadow-1: 0 1px 2px rgb(20 32 43 / 0.12);
+    --color-warning: #9a4a00;
+    --color-focus: #8a5300;
+    --color-hero: #0d3b34;
+    --color-on-hero: #eaf7f1;
+    --color-on-hero-muted: #a9cbbf;
+    --color-hero-line: #2f6b5e;
+    --color-hero-accent: #f5b83d;
+    --color-hero-good: #7ee2b8;
+    --color-hero-bad: #ff9a8a;
   }
 }
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --color-bg: #f6f8fa;
+  --color-bg: #f2f5f2;
   --color-surface-1: #ffffff;
-  --color-surface-2: #eef1f5;
-  --color-surface-3: #e1e6ec;
-  --color-border: #d5dbe3;
-  --color-border-strong: #6b7785;
-  --color-text: #14202b;
-  --color-text-muted: #4a5866;
-  --color-accent: #0b5cd5;
-  --color-on-accent: #ffffff;
+  --color-surface-2: #e9efea;
+  --color-surface-3: #dce5de;
+  --color-border: #d2dcd5;
+  --color-border-strong: #5f7a72;
+  --color-text: #10201c;
+  --color-text-muted: #4a605a;
+  --color-accent: #8a5300;
+  --color-accent-fill: #f5b83d;
+  --color-on-accent: #1b1303;
   --color-positive: #12794a;
   --color-negative: #b42318;
-  --color-warning: #8a5a00;
-  --color-focus: #0b5cd5;
-  --shadow-1: 0 1px 2px rgb(20 32 43 / 0.12);
+  --color-warning: #9a4a00;
+  --color-focus: #8a5300;
+  --color-hero: #0d3b34;
+  --color-on-hero: #eaf7f1;
+  --color-on-hero-muted: #a9cbbf;
+  --color-hero-line: #2f6b5e;
+  --color-hero-accent: #f5b83d;
+  --color-hero-good: #7ee2b8;
+  --color-hero-bad: #ff9a8a;
 }

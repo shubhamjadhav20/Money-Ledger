@@ -3,23 +3,23 @@
   <div class="month" role="group" aria-label="Month">
     <button
       ui-button
-      variant="secondary"
+      variant="icon"
       type="button"
       aria-label="Previous month"
       (click)="store.goToMonth(-1)"
     >
-      ‹
+      <ui-icon name="left" />
     </button>
     <span class="month-label" aria-live="polite">{{ monthLabel() }}</span>
     <button
       ui-button
-      variant="secondary"
+      variant="icon"
       type="button"
       aria-label="Next month"
       [disabled]="!store.canGoForward()"
       (click)="store.goToMonth(1)"
     >
-      ›
+      <ui-icon name="right" />
     </button>
   </div>
 </header>

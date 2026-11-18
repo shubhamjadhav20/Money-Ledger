@@ -11,12 +11,12 @@ export type BadgeTone = 'neutral' | 'positive' | 'negative' | 'warning' | 'info'
   styles: `
     :host {
       display: inline-block;
-      padding: 0 var(--space-2);
-      border: 1px solid currentColor;
+      padding: 0.0625rem var(--space-2);
       border-radius: var(--radius-pill);
+      background: color-mix(in srgb, currentColor 9%, transparent);
       font-size: var(--text-xs);
-      font-weight: var(--weight-medium);
-      line-height: 1.6;
+      font-weight: var(--weight-bold);
+      line-height: 1.5;
       white-space: nowrap;
     }
     :host(.neutral) {

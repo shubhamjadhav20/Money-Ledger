@@ -17,15 +17,18 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       padding: 0 var(--space-4);
       border: 1px solid var(--color-border-strong);
       border-radius: var(--radius-pill);
-      background: var(--color-surface-1);
+      background: transparent;
       color: var(--color-text);
       font: inherit;
       font-size: var(--text-sm);
       cursor: pointer;
     }
+    :host(:hover:not(.selected)) {
+      background: var(--color-surface-2);
+    }
     :host(.selected) {
-      background: var(--color-accent);
-      border-color: var(--color-accent);
+      background: var(--color-accent-fill);
+      border-color: var(--color-accent-fill);
       color: var(--color-on-accent);
       font-weight: var(--weight-medium);
     }

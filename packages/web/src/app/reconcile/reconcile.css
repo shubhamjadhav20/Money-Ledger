@@ -52,7 +52,7 @@ h2 {
   padding: var(--space-3) var(--space-4);
   background: var(--color-surface-1);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
 }
 
 .counts dt {
@@ -62,8 +62,10 @@ h2 {
 
 .counts dd {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--weight-medium);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
 

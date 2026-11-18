@@ -84,19 +84,31 @@ h3 {
 }
 
 .filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: end;
   gap: var(--space-3);
+}
+
+.filters .grow,
+.filters button[type='submit'] {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 48rem) {
+  .filters {
+    grid-template-columns: minmax(14rem, 2fr) 1fr 1fr auto auto;
+  }
+
+  .filters .grow,
+  .filters button[type='submit'] {
+    grid-column: auto;
+  }
 }
 
 .field {
   display: grid;
   gap: var(--space-1);
-}
-
-.field.grow {
-  flex: 1 1 14rem;
 }
 
 label {

@@ -69,7 +69,22 @@ describe.each(['dark', 'light'] as const)('design tokens (%s)', (theme) => {
   });
 
   it('text on the accent fill meets AA', () => {
-    expect(contrast(token(theme, 'on-accent'), token(theme, 'accent'))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(token(theme, 'on-accent'), token(theme, 'accent-fill'))).toBeGreaterThanOrEqual(
+      4.5,
+    );
+  });
+
+  it.each(['on-hero', 'on-hero-muted', 'hero-accent', 'hero-good', 'hero-bad'])(
+    '%s text on the hero block meets AA',
+    (name) => {
+      expect(contrast(token(theme, name), token(theme, 'hero'))).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  it('the focus ring is visible (3:1) on every surface', () => {
+    for (const surface of SURFACES) {
+      expect(contrast(token(theme, 'focus'), token(theme, surface))).toBeGreaterThanOrEqual(3);
+    }
   });
 });
 

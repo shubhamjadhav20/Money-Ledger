@@ -24,6 +24,8 @@ describe('Gallery', () => {
       'Type and money',
       'Buttons and chips',
       'Cards',
+      'Hero and runway',
+      'Icons',
       'Table',
       'Empty, loading, error',
     ]);

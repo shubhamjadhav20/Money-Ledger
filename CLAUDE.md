@@ -52,7 +52,9 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 
 **M5f done (branch `feat/m5f-reconcile`):** `/reconcile`: month bar, counts, Please check / Matched / Need review cards, empty and error states. Read only: confirming or rejecting a match needs a new write endpoint, which needs an explicit go-ahead. No new endpoint. 375 web tests.
 
-**Next: M5g** quick-add (capture-scope token). The payday split and scheduled items have no screen yet. Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
+**UI refresh done (branch `feat/ui-refresh`):** new look at token and component level: ink-green neutrals, one ledger-green hero, marigold accent; Bricolage Grotesque + Figtree self-hosted in `public/fonts` (no npm dependency); `ui-icon` (Lucide shapes); phone bottom tab bar and desktop sidebar; Dashboard hero with a payday runway line (`dashboard/runway.ts`); all screens restyled. No behaviour or API change. 394 web tests.
+
+**Next: M5g** quick-add (capture-scope token), built in the new look. The payday split and scheduled items have no screen yet. Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
 
 **Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `planning-service` `planning-routes` `analysis-service` `analysis-routes` `transaction-view` `http-support` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
 

@@ -2,11 +2,11 @@ import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/cor
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthStore } from './api/auth';
 import { PROTECTED_PREFIXES } from './guards';
-import { UiButton } from './ui/button';
+import { UiIcon } from './ui/icon';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, UiButton],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, UiIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
   styleUrl: './app.css',

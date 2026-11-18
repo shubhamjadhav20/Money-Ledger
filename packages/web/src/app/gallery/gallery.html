@@ -100,6 +100,25 @@
   </div>
 </section>
 
+<section aria-labelledby="g-hero">
+  <h2 id="g-hero">Hero and runway</h2>
+  <div class="hero-demo">
+    <p class="small">The money lasts to payday</p>
+    <app-runway [free]="800000" [projected]="300000" />
+    <p class="small">The money runs out before payday</p>
+    <app-runway [free]="800000" [projected]="-400000" />
+  </div>
+</section>
+
+<section aria-labelledby="g-icons">
+  <h2 id="g-icons">Icons</h2>
+  <ul class="icons">
+    @for (icon of icons; track icon) {
+    <li><ui-icon [name]="icon" /> {{ icon }}</li>
+    }
+  </ul>
+</section>
+
 <section aria-labelledby="g-table">
   <h2 id="g-table">Table</h2>
   <div class="table-wrap">
