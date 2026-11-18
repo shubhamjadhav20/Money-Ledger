@@ -282,12 +282,19 @@ generated; real statements are never committed (the repository is public, and gi
 So far: the look and the parts every screen is built from, plus six real screens: **Connect**,
 the **Dashboard**, **Transactions**, **Import**, **Reconcile** and **Pots**.
 
+- **The look.** Deep ink-green neutrals, one saturated "ledger green" block per screen (the
+  Dashboard's free-to-spend hero), and a single marigold accent used for the primary button, the
+  active tab and the payday marker. Numbers are set in Bricolage Grotesque, body text in Figtree.
+  Both are self-hosted font files (no request to a font service) and both draw the ₹ sign.
+- **Navigation.** On a phone, a tab bar at the bottom with an icon and a label for each screen, and
+  a slim bar at the top. On a wide screen, a sidebar on the left. The Gallery is a development
+  page, so on a phone it is reached by address only.
 - **Design tokens** (`src/styles/tokens.css`): every colour, size, radius and duration lives in
   one file as CSS variables. Dark is the default; light follows your phone's setting or your
   choice. A test checks that every text colour is readable on every surface it is used on (the
   WCAG AA contrast standard), in both themes, so the palette cannot quietly become hard to read.
-- **Components** (`src/app/ui`): money, button, chip, badge, card, and the empty / loading / error
-  message. Screens will be assembled from these rather than styled one by one.
+- **Components** (`src/app/ui`): money, button, chip, badge, card, icon, and the empty / loading /
+  error message. Screens will be assembled from these rather than styled one by one.
 - **Money** is always drawn by `ui-money`, which formats integer paise with the same function the
   API uses (`formatINR` from core), so a number can never read differently on screen than in the
   API. Digits are fixed-width so columns of amounts line up.
@@ -295,6 +302,12 @@ the **Dashboard**, **Transactions**, **Import**, **Reconcile** and **Pots**.
   is how a design change gets reviewed without needing real numbers on screen.
 - Accessibility basics are built in: a skip link, keyboard focus ring, state never carried by
   colour alone (the text says "posted", the sign is in the number), and reduced-motion support.
+
+**The payday runway** (Dashboard) is a small drawn line from the free money you have today to the
+free money the forecast expects on payday. The forecast spends a fixed amount a day, so the line is
+straight and shows nothing the numbers beside it do not say; if the money would run out first, the
+line crosses a dashed zero line and the point is marked. Every number on it is also written out as
+text, and the picture is hidden from screen readers so nothing is read twice.
 
 **Connecting.** Until the proper login exists (see section 11), you paste an API token on the
 Connect screen. The token is kept in this browser tab's memory only: never in the address bar, never
