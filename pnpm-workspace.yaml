@@ -18,6 +18,9 @@ allowBuilds:
   lmdb: false
   msgpackr-extract: false
 engineStrict: true
+# GHSA-fc5q-39xc-vjpf: picomatch <=4.0.7 ReDoS. No patched release exists (npm latest is 4.0.7) and it is
+# reachable only through dev tooling (vite, vitest, Angular build); `pnpm audit --prod` is clean.
+# TODO: remove this entry once picomatch ships a fix (PLAN.md decision log, 2026-11-18).
 auditConfig:
   ignoreGhsas:
     - GHSA-fc5q-39xc-vjpf

@@ -59,10 +59,7 @@ jobs:
       - run: pnpm test:web
       - run: pnpm build
       - name: Audit dependencies (fail on high/critical)
-        # GHSA-fc5q-39xc-vjpf (picomatch <=4.0.7, ReDoS) has no patched release and is reachable only
-        # through dev tooling (vite, vitest, Angular build); `pnpm audit --prod` is clean. TODO: remove
-        # the --ignore once picomatch publishes a fix (see PLAN.md decision log, 2026-11-18).
-        run: pnpm audit --audit-level high --ignore GHSA-fc5q-39xc-vjpf
+        run: pnpm audit --audit-level high
 
   secrets:
     name: gitleaks
