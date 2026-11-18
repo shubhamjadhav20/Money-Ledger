@@ -22,7 +22,7 @@ See PLAN.md for scope, domain rules and milestones.
 - TypeScript is pinned to 6.0.x: typescript-eslint supports `<6.1` and Angular 22 requires `>=6.0 <6.1`. Do not move to TS 7 until both support it.
 - Internal packages have no build step: `exports` point at `src/*.ts`, relative imports use `.ts` extensions, and Node 24 runs them via type stripping. Only erasable TS syntax (`erasableSyntaxOnly`): no enums, namespaces or parameter properties.
 - Angular 22 requires Node `>=24.15` (now enforced in `engines`); your own machine needs that Node to run the web app.
-- MCP SDK: `@modelcontextprotocol/sdk` (v1) and `@modelcontextprotocol/server` (v2) both exist; choose in M6.
+- MCP SDK: `@modelcontextprotocol/server` 2.4.0 (v2, exact version; chosen in M6 over `@modelcontextprotocol/sdk` v1). `registerTool` takes zod object schemas; `serveStdio` is imported from `@modelcontextprotocol/server/stdio`.
 
 ## Where we are (updated 2026-11-18, keep this current at the end of each milestone)
 
@@ -58,9 +58,11 @@ Repo: https://github.com/shubhamjadhav20/Money-Ledger (public, `main`, pushed ov
 
 **M5h done (branch `feat/m5h-payday`):** `/payday`: payday day, weekend rule and card exposure; the payday split as an editable draft (fixed / share / the rest, each into an optional pot) with core's validation; "try a payday" (preview, then confirm to add to pots, idempotent by run id); scheduled outflows (list, add, remove). Sixth tab in the nav. No new endpoint, scope or dependency. 600 web tests.
 
-**Next:** M6 (MCP server). Still gated on an explicit go-ahead: confirming or rejecting a reconcile match (new endpoint) and editing a card's statement and due days (new endpoint). Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
+**M6 done (branch `feat/m6-mcp`):** `packages/tools` (7 tools written once over a `LedgerService` interface, zod input/output schemas, `{paise, formatted}` money, `safeText` for ledger text) and `packages/mcp` (`ApiLedgerService` over `fetch`, config loader, stdio entry `src/bin/serve.ts`, resource `ledger://summary/{month}`, prompt `payday_checklist`). Six read tools use a `read` token; `add_transaction` exists only with `LEDGER_MCP_WRITE=1`, needs `confirm: true` and its own `capture` token (`LEDGER_CAPTURE_TOKEN`). stdout is protocol only; stderr logs hold tool names and error codes only. No new endpoint or scope. Setup is in `packages/mcp/README.md`; `docs/HOW-IT-WORKS.md` section 10c explains it in plain language.
 
-**Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `planning-service` `planning-routes` `analysis-service` `analysis-routes` `transaction-view` `http-support` `auth` `app` `config` `server` `admin-cli` `bin/*`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
+**Next:** M7 (public demo with generated data) and M8 (private deployment, Telegram bot), each only after an explicit go-ahead. Still gated on an explicit go-ahead: confirming or rejecting a reconcile match (new endpoint) and editing a card's statement and due days (new endpoint). Ask before adding each dependency (ECharts for the forecast chart, angular-eslint, Angular CDK/Material only if wanted).
+
+**Core map** (`packages/core/src`): `money` `dates` `domain` `import/{csv,csv-importer,identity,demo-mappings,types}` `categorise` `transfers` `reconcile` `cycle` `payday` `pots` `free-to-spend` `forecast` `simulate` `summary` `capture` `matching`. API (`packages/api/src`): `db/*` `import-service` `capture-service` `planning-service` `planning-routes` `analysis-service` `analysis-routes` `transaction-view` `http-support` `auth` `app` `config` `server` `admin-cli` `bin/*`. Tools (`packages/tools/src`): `tools` `service` (wire schemas, `LedgerService`) `format`. MCP (`packages/mcp/src`): `server` `api-service` `config` `log` `bin/serve`. Fake fixtures: `pnpm fixtures` (generator in `scripts/fixtures/`; committed files must match it).
 
 **Decisions:** PLAN.md section 15 (decision log) is the source of truth; read it before changing domain behaviour.
 
