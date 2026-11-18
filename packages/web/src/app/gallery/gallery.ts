@@ -6,8 +6,10 @@ import { UiBadge } from '../ui/badge';
 import { UiButton } from '../ui/button';
 import { UiCard } from '../ui/card';
 import { UiChip } from '../ui/chip';
+import { UiIcon } from '../ui/icon';
 import { UiMoney } from '../ui/money';
 import { UiStateMessage } from '../ui/state-message';
+import { Runway } from '../dashboard/runway';
 
 /** Fake sample rows only: the gallery never touches the API or real data. */
 const SAMPLE_ROWS = [
@@ -26,9 +28,26 @@ const SWATCHES = [
   'text',
   'text-muted',
   'accent',
+  'accent-fill',
+  'hero',
+  'on-hero',
+  'hero-accent',
   'positive',
   'negative',
   'warning',
+] as const;
+
+const ICONS = [
+  'home',
+  'list',
+  'upload',
+  'match',
+  'pots',
+  'plus',
+  'logout',
+  'left',
+  'right',
+  'alert',
 ] as const;
 
 const CATEGORIES = ['Food', 'Travel', 'Bills', 'Shopping', 'Health'] as const;
@@ -36,7 +55,7 @@ const METHODS = ['UPI', 'Card', 'Cash'] as const;
 
 @Component({
   selector: 'app-gallery',
-  imports: [UiBadge, UiButton, UiCard, UiChip, UiMoney, UiStateMessage],
+  imports: [Runway, UiBadge, UiButton, UiCard, UiChip, UiIcon, UiMoney, UiStateMessage],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './gallery.html',
   styleUrl: './gallery.css',
@@ -46,6 +65,7 @@ export class Gallery {
 
   protected readonly rows = SAMPLE_ROWS;
   protected readonly swatches = SWATCHES;
+  protected readonly icons = ICONS;
   protected readonly categories = CATEGORIES;
   protected readonly methods = METHODS;
   protected readonly themes: readonly ThemeChoice[] = ['system', 'dark', 'light'];

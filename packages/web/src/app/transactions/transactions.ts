@@ -6,6 +6,7 @@ import { formatDay, plural } from '../format';
 import { formatMonth } from '../month';
 import { UiBadge } from '../ui/badge';
 import { UiButton } from '../ui/button';
+import { UiIcon } from '../ui/icon';
 import { UiCard } from '../ui/card';
 import { UiMoney } from '../ui/money';
 import { UiStateMessage } from '../ui/state-message';
@@ -16,7 +17,7 @@ import type { KindFilter, StatusFilter } from './transactions-store';
 
 @Component({
   selector: 'app-transactions',
-  imports: [TransactionEditor, UiBadge, UiButton, UiCard, UiMoney, UiStateMessage],
+  imports: [TransactionEditor, UiBadge, UiButton, UiCard, UiMoney, UiStateMessage, UiIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './transactions.html',
   styleUrl: './transactions.css',
