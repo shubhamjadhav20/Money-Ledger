@@ -4,10 +4,10 @@ A plain-language guide to the whole project. It is updated at the end of each mi
 always describes what exists today. For the plan and the decision log, see `PLAN.md`; for the
 rules Claude Code follows, see `CLAUDE.md`.
 
-**Status:** M0 to M3.5 (core logic), M4a (database, import, quick-add), M4b-1 (HTTP API with
-scoped tokens and audit log) and M4b-2a (a runnable server, admin command, production Postgres
-driver) are built. Pots, payday, free-to-spend routes, the Angular app, MCP and the Telegram bot are
-not built yet (see section 10).
+**Status:** the core logic (M0 to M3.5), the database, import and quick-add service (M4a), the HTTP
+API with scoped tokens and audit log (M4b), a runnable server (M4b-2a) and the web app's screens
+(M5a to M5g: Dashboard, Transactions, Import, Pots, Reconcile and Quick add) are built. The MCP
+server and the Telegram bot are not built yet (see section 11).
 
 ## 1. What it is
 
@@ -279,16 +279,17 @@ generated; real statements are never committed (the repository is public, and gi
 
 ## 10b. The web app (`packages/web`)
 
-So far: the look and the parts every screen is built from, plus six real screens: **Connect**,
-the **Dashboard**, **Transactions**, **Import**, **Reconcile** and **Pots**.
+So far: the look and the parts every screen is built from, plus seven real screens: **Connect**,
+the **Dashboard**, **Transactions**, **Import**, **Reconcile**, **Pots** and **Quick add**.
 
 - **The look.** Deep ink-green neutrals, one saturated "ledger green" block per screen (the
   Dashboard's free-to-spend hero), and a single marigold accent used for the primary button, the
   active tab and the payday marker. Numbers are set in Bricolage Grotesque, body text in Figtree.
   Both are self-hosted font files (no request to a font service) and both draw the ₹ sign.
 - **Navigation.** On a phone, a tab bar at the bottom with an icon and a label for each screen, and
-  a slim bar at the top. On a wide screen, a sidebar on the left. The Gallery is a development
-  page, so on a phone it is reached by address only.
+  a slim bar at the top. On a wide screen, a sidebar on the left. A marigold **Quick add** button
+  floats above the tab bar on a phone and sits under the brand in the sidebar; it hides itself on the
+  Quick add screen. The Gallery is a development page, so on a phone it is reached by address only.
 - **Design tokens** (`src/styles/tokens.css`): every colour, size, radius and duration lives in
   one file as CSS variables. Dark is the default; light follows your phone's setting or your
   choice. A test checks that every text colour is readable on every surface it is used on (the
@@ -426,10 +427,37 @@ shows the result and changes nothing, so it works with a read-only token.
 - Names from the bank are shown as plain text, never as markup. A payment the API did not describe
   is left out of its card instead of being shown wrong.
 
+**Quick add** (`/quick-add`) is the fastest way to log a payment: an amount, a category, how you
+paid and when. It works with the same one-line grammar as the API and the future Telegram bot
+(section 3, "The quick-add grammar"), so you never need to learn it: the form writes the line for you.
+- **The big number.** The amount sits in the green panel, with a Spent / Received switch above it.
+  Under the number, a line says how the entry will be read ("Spent ₹450.00 on dinner · UPI · Tue,
+  17 Nov") before anything is sent, using the very same function the server uses. If the note you
+  typed contains a second payment method ("paid by cash" while UPI is chosen), the line says so
+  instead of guessing, and Add stays off.
+- **The fields.** Category (spaces become hyphens; categories you just used appear as chips), an
+  optional note, Paid with (UPI, Card, Cash, Net banking) and When (Today or Yesterday). Method and day
+  stay as they were after each save, because they tend to repeat; the amount, category and note clear
+  and the cursor goes back to the amount.
+- **What gets saved.** One *pending* entry, the same as any quick-add. When you later import the bank
+  statement, the import completes that entry instead of adding a second one, so the payment counts
+  once. The server re-reads the text and decides the date and the account, so what comes back in the
+  "Just added" list is what was really stored. Notes are shown as plain text, never as markup.
+- **Account.** The server picks the account from how you paid (UPI and net banking use your bank
+  account, Card your card, Cash your cash). If you have two bank accounts it asks you to say which, and
+  a token that can read shows an Account choice for that case.
+- **A capture-only token.** A token with the `capture` scope can add entries and nothing else, which
+  is the right thing to keep on a phone. The Connect screen's check needs read access, so a 403 there
+  is how the app recognises a capture-only token (read and full tokens pass that check). It then opens
+  only Quick add: no tab bar, no other screens. The "Just added" list is its only feedback, since it
+  cannot read transactions back.
+- **Not built yet.** Installing it on a phone's home screen with an offline queue (a service worker,
+  which is a dependency to decide on) and a date other than today or yesterday.
+
 ## 11. Not built yet
 
 - Web login (argon2id, cookie session, CSRF) arrives with the Angular app.
-- M5, remaining screen: PWA quick-add (M5g). The API client, Dashboard, Transactions, Import, Pots and Reconcile are done. The payday split (preview and apply) and confirming or rejecting a reconcile match have no screen yet; the second needs a new endpoint first.
+- M5, remaining: the payday split (preview and apply) and scheduled items have no screen yet, confirming or rejecting a reconcile match needs a new endpoint first, and Quick add is not yet installable on a phone's home screen (offline queue and service worker need a dependency decision).
 - M6: local MCP server so Claude can answer "can I buy this on Slice in 3?" from your real numbers.
 - M7: public demo with generated data. M8: private deployment and the Telegram bot.
 
