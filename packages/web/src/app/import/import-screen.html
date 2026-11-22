@@ -43,23 +43,79 @@
       </select>
     </div>
     <div class="field">
-      <label for="imp-file">Statement file (CSV)</label>
+      <label for="imp-file">Statement file (CSV or PDF)</label>
       <input
         class="control file"
         id="imp-file"
         type="file"
-        accept=".csv,text/csv"
+        accept=".csv,text/csv,.pdf,application/pdf"
         (change)="onFile($event)"
       />
       @if (store.fileName(); as name) {
       <p class="muted">Ready: {{ name }}</p>
       } @if (store.fileError(); as problem) {
       <p class="problem" role="alert">{{ problem }}</p>
+      } @if (store.pdfName(); as pdfName) {
+      <div class="pdf" role="group" aria-labelledby="imp-pdf-title">
+        <p id="imp-pdf-title"><strong>PDF chosen:</strong> {{ pdfName }}</p>
+        @if (store.pdfLayoutMissing()) {
+        <p class="problem" role="alert">
+          That statement layout has no PDF version yet. Choose a CSV from the bank, or a layout that
+          supports PDF.
+        </p>
+        } @else if (store.pdfRead(); as read) {
+        <p class="muted" role="status">
+          Read {{ plural(read.rows, 'transaction') }} from {{ plural(read.pages, 'page') }}.
+        </p>
+        } @else { @if (store.mappingId() === '') {
+        <p class="muted">Choose the statement layout above, then open the PDF.</p>
+        }
+        <label for="imp-pdf-password">PDF password (leave empty if it has none)</label>
+        <input
+          #pdfPassword
+          class="control"
+          id="imp-pdf-password"
+          type="password"
+          autocomplete="off"
+          spellcheck="false"
+          (keydown.enter)="$event.preventDefault(); readPdf(pdfPassword)"
+        />
+        <p class="muted hint">
+          Used once, in this browser, to open the file, then forgotten. It is never sent anywhere or
+          saved.
+        </p>
+        <button
+          ui-button
+          variant="secondary"
+          type="button"
+          [disabled]="!store.canReadPdf()"
+          (click)="readPdf(pdfPassword)"
+        >
+          {{ store.pdfReading() ? 'Opening…' : 'Open the PDF' }}
+        </button>
+        } @if (store.pdfProblem(); as problem) {
+        <p class="problem" role="alert">{{ problem }}</p>
+        } @if (store.pdfIssues().length > 0) {
+        <div class="problem" role="alert">
+          <p>
+            This PDF does not read cleanly with that layout. Nothing can be imported until it does:
+          </p>
+          <ul>
+            @for (issue of issues(store.pdfIssues()); track $index) {
+            <li>{{ issue.reason }}</li>
+            }
+          </ul>
+          @if (moreIssues(store.pdfIssues()) > 0) {
+          <p>and {{ plural(moreIssues(store.pdfIssues()), 'more problem') }}</p>
+          }
+        </div>
+        }
+      </div>
       }
     </div>
     <p class="muted hint">
       Nothing is saved yet. You will see what would change and confirm it. The file is read in this
-      browser and sent only to your own API.
+      browser and only its rows are sent to your own API.
     </p>
     <button ui-button variant="primary" type="submit" [disabled]="!store.canPreview()">
       {{ store.busy() === 'previewing' ? 'Checking…' : 'Preview import' }}

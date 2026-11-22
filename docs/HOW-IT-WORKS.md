@@ -79,6 +79,7 @@ You pay ₹450 at a cafe by UPI.
 | `domain` | kinds, methods, `isPurchaseFlow` | shared vocabulary |
 | `import/csv*`, `demo-mappings` | CSV to rows, per-bank column mappings | banks all differ |
 | `import/identity` | row identity = account, date, amount, bank ref or counterparty, plus occurrence number | re-import safe, but two real identical chais stay two |
+| `import/pdf-table`, `pdf-extract`, `pdf-layouts` | a PDF statement's positioned text to the same CSV a bank export would give, per-bank PDF layouts | a PDF is a picture of a table; the columns are rebuilt from where the text sits, and nothing is guessed |
 | `categorise` | ordered user rules: text to category (and optionally kind) | no AI, explainable |
 | `transfers` | pairs card-bill payments and own-account moves | transfers are not spend |
 | `reconcile` | groups purchase + refund + friends' shares into bundles with a net | real spend, not gross |
@@ -355,13 +356,24 @@ port 3000 (the API deliberately allows no cross-site calls), so run both side by
   spelling stays the same. After a save the month's totals refresh without the list flashing.
   Saving needs a full-access token; a read-only token gets a clear message.
 
-**Import** (`/import`) brings in a bank or card statement (a CSV file) in three steps. Nothing is
-saved until the last one.
+**Import** (`/import`) brings in a bank or card statement (a CSV file, or a PDF) in three steps.
+Nothing is saved until the last one.
 1. **Choose.** Pick the account, the statement layout (the demo layouts for now: FakeBank savings
    and DemoCard credit card) and the file. The file is read in your browser and sent only to your
    own API; the page keeps it in memory just long enough to import it, and forgets it afterwards.
    Cash accounts are not offered, because cash never appears on a statement. An empty file, or
    one over about 2 MB, is refused with a plain message.
+
+   **A PDF statement** takes one extra step here, because banks usually lock them with a password.
+   After you choose the file a box appears: type the PDF's password and press "Open the PDF" (or
+   Enter). The password is used once, in this browser, to open the file, and the box is emptied at
+   once; it is never sent to the API, saved or logged. The PDF is opened by pdf.js, which is only
+   downloaded the first time you open a PDF. The page then rebuilds the statement's table from
+   where each piece of text sits and turns it into the same CSV the bank's own export would be, so
+   everything after this (review, decisions, confirm) is exactly the CSV path. Only those rows
+   reach the API, never the PDF. The layout must have a PDF version (`pdfLayoutFor`); if the PDF
+   does not read cleanly (titles not found, a date that cannot be read, a number that fits no
+   column) the page lists the reasons and blocks the import rather than dropping a line quietly.
 2. **Review.** The API works out what *would* happen and the page shows it as four counts: new
    transactions, entries you added by hand that the statement would complete, rows already
    imported earlier (skipped, so nothing counts twice), and rows that need your decision. Lists
@@ -484,6 +496,25 @@ paid and when. It works with the same one-line grammar as the API and the future
 - **Not built yet.** Installing it on a phone's home screen with an offline queue (a service worker,
   which is a dependency to decide on) and a date other than today or yesterday.
 
+### Adding your bank's PDF layout
+
+A PDF layout is config (`packages/core/src/import/pdf-layouts.ts`), but it has to match how *your*
+bank prints the table, and you should not share a statement to get it. So there is a tool that
+shows only the shape:
+
+```
+pnpm pdf:skeleton "C:\path\to\statement.pdf"
+```
+
+It asks for the password in a hidden prompt (never saved, printed or taken from the command line)
+and prints every line of the PDF with each letter shown as `x`/`X` and each digit as `9`, plus where
+each column sits. Names, narrations and amounts cannot be seen, but you can see the date and
+amount formats, the column positions and which lines repeat on every page. Then reveal just the
+column-title line as printed (it contains no personal data) with `--reveal <line number>`, and
+share that output. From it the layout is written: the column titles, which column wraps onto a
+second line, and any page footer lines to ignore. `pnpm pdf:fake` writes a fake locked statement
+to try the whole flow without a real one.
+
 ## 10c. The MCP server (`packages/tools`, `packages/mcp`)
 
 MCP ("Model Context Protocol") is the standard way an AI app such as Claude Desktop or Claude Code
@@ -542,6 +573,9 @@ the answers, that a read-only server has no write tool, that writes need the fla
 that stdout carries nothing but protocol messages.
 
 ## 11. Not built yet
+
+- Your own bank's PDF layout: waiting for its column titles (from `pnpm pdf:skeleton`). Excel
+  (`.xlsx`) statements are not read, locked or not.
 
 - Web login (argon2id, cookie session, CSRF) arrives with the Angular app.
 - M5, remaining: confirming or rejecting a reconcile match needs a new endpoint first, editing a card's statement and due days needs a new endpoint too, "the Monday after" is not a weekend choice for payday yet, and Quick add is not yet installable on a phone's home screen (offline queue and service worker need a dependency decision).

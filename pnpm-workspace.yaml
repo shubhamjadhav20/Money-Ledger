@@ -18,6 +18,10 @@ allowBuilds:
   lmdb: false
   msgpackr-extract: false
 engineStrict: true
+# pdfjs-dist lists @napi-rs/canvas (a 15 MB native binary) as optional. It is only used to draw
+# pages in Node; Ledger reads text only, in the browser, so it is switched off (2026-11-18).
+ignoredOptionalDependencies:
+  - '@napi-rs/canvas'
 # GHSA-fc5q-39xc-vjpf: picomatch <=4.0.7 ReDoS. No patched release exists (npm latest is 4.0.7) and it is
 # reachable only through dev tooling (vite, vitest, Angular build); `pnpm audit --prod` is clean.
 # TODO: remove this entry once picomatch ships a fix (PLAN.md decision log, 2026-11-18).

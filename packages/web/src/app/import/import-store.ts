@@ -1,5 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { DEMO_MAPPINGS } from '@ledger/core';
+import {
+  DEMO_MAPPINGS,
+  PdfPasswordError,
+  PdfReadError,
+  pdfLayoutFor,
+  pdfTableToCsv,
+} from '@ledger/core';
+import type { ParseIssue } from '@ledger/core';
 import { ApiClient, ApiError } from '../api/api-client';
 import type {
   AccountBalanceView,
@@ -8,6 +15,7 @@ import type {
   ImportPlanView,
   TransactionView,
 } from '../api/models';
+import { PdfReader } from './pdf-reader';
 
 export type ImportStep = 'choose' | 'review' | 'done';
 export type ImportBusy = 'previewing' | 'confirming' | null;
@@ -15,11 +23,19 @@ export type ImportBusy = 'previewing' | 'confirming' | null;
 /** The API refuses bigger files; checking here gives the message before a slow upload. */
 export const MAX_CSV_CHARS = 2_000_000;
 
+/** A statement PDF is a few hundred kilobytes; this stops a wrong file from being read at all. */
+export const MAX_PDF_BYTES = 10_000_000;
+
 /**
  * The statement layouts the API accepts. They come from core, the same list the API defaults to, so
- * the two cannot disagree. A real bank layout is added there (config only).
+ * the two cannot disagree. A real bank layout is added there (config only). `pdf` says whether that
+ * bank's PDF statement can be read too.
  */
-export const LAYOUTS = DEMO_MAPPINGS.map((mapping) => ({ id: mapping.id, label: mapping.label }));
+export const LAYOUTS = DEMO_MAPPINGS.map((mapping) => ({
+  id: mapping.id,
+  label: mapping.label,
+  pdf: pdfLayoutFor(mapping.id) !== undefined,
+}));
 
 /** A pending entry that could be a statement row, with its details when they are known. */
 export interface Candidate {
@@ -38,6 +54,17 @@ function describe(error: unknown): string {
   return 'Something went wrong';
 }
 
+/** Plain-language reasons a PDF could not be opened. Never includes the password or file content. */
+function describePdf(error: unknown): string {
+  if (error instanceof PdfPasswordError) {
+    return error.reason === 'wrong'
+      ? 'That password did not open the PDF. Check it and try again.'
+      : 'This PDF is password protected. Type its password and try again.';
+  }
+  if (error instanceof PdfReadError) return error.message;
+  return 'Could not read that PDF.';
+}
+
 /**
  * One import, start to finish: pick account, layout and file, preview what would happen, settle any
  * row that could be more than one of your entries, then confirm. The file's text lives only in this
@@ -46,6 +73,7 @@ function describe(error: unknown): string {
 @Injectable()
 export class ImportStore {
   private readonly api = inject(ApiClient);
+  private readonly pdfReader = inject(PdfReader);
 
   readonly layouts = LAYOUTS;
 
@@ -61,6 +89,31 @@ export class ImportStore {
   readonly fileName = signal<string | null>(null);
   readonly fileError = signal<string | null>(null);
   private readonly csv = signal<string | null>(null);
+
+  /**
+   * A chosen PDF waits here until it is opened with its password. The bytes live only in this store
+   * (the screen's), and the password is never stored: it is passed straight to `readPdf`.
+   */
+  readonly pdfName = signal<string | null>(null);
+  private readonly pdfBytes = signal<Uint8Array | null>(null);
+  readonly pdfReading = signal(false);
+  readonly pdfProblem = signal<string | null>(null);
+  /** Things the PDF's table could not be read as. They block the import, like unreadable CSV rows. */
+  readonly pdfIssues = signal<readonly ParseIssue[]>([]);
+  readonly pdfRead = signal<{ readonly pages: number; readonly rows: number } | null>(null);
+
+  /** The PDF version of the chosen layout, or undefined when that bank's PDF is not supported yet. */
+  readonly pdfLayout = computed(() => pdfLayoutFor(this.mappingId()));
+  readonly pdfLayoutMissing = computed(
+    () => this.pdfName() !== null && this.mappingId() !== '' && this.pdfLayout() === undefined,
+  );
+  readonly canReadPdf = computed(
+    () =>
+      this.pdfBytes() !== null &&
+      this.pdfLayout() !== undefined &&
+      !this.pdfReading() &&
+      this.busy() === null,
+  );
 
   readonly plan = signal<ImportPlanView | null>(null);
   readonly choices = signal<Readonly<Record<string, string>>>({});
@@ -144,6 +197,8 @@ export class ImportStore {
 
   setLayout(id: string): void {
     this.mappingId.set(id);
+    // What was read from a PDF depends on the layout, so it has to be read again (password too).
+    if (this.pdfBytes() !== null) this.forgetPdfResult();
   }
 
   /** `text` is the file's contents; reading the file is the caller's job. */
@@ -156,6 +211,7 @@ export class ImportStore {
       this.clearFile();
       this.fileError.set('That file is too large to import.');
     } else {
+      this.clearFile(); // a CSV replaces any PDF that was waiting
       this.fileName.set(name);
       this.csv.set(text);
     }
@@ -166,9 +222,67 @@ export class ImportStore {
     this.fileError.set(message);
   }
 
-  private clearFile(): void {
+  /** `bytes` is the PDF file; opening it (with its password) is a separate step, `readPdf`. */
+  setPdf(name: string, bytes: Uint8Array): void {
+    this.clearFile();
+    this.fileError.set(null);
+    if (bytes.length === 0) {
+      this.fileError.set('That file is empty.');
+    } else if (bytes.length > MAX_PDF_BYTES) {
+      this.fileError.set('That file is too large to import.');
+    } else {
+      this.pdfName.set(name);
+      this.pdfBytes.set(bytes);
+    }
+  }
+
+  /**
+   * Opens the chosen PDF with `password` (empty when it has none) and turns its table into the same
+   * CSV a bank export would be, ready to preview. The password is used once and not kept.
+   */
+  async readPdf(password: string): Promise<void> {
+    const bytes = this.pdfBytes();
+    const layout = this.pdfLayout();
+    const name = this.pdfName();
+    if (!this.canReadPdf() || bytes === null || layout === undefined || name === null) return;
+
+    this.forgetPdfResult();
+    this.pdfReading.set(true);
+    try {
+      const items = await this.pdfReader.read(bytes, password);
+      const table = pdfTableToCsv(items, layout);
+      if (table.issues.length > 0) {
+        this.pdfIssues.set(table.issues);
+      } else if (table.csv.length > MAX_CSV_CHARS) {
+        this.pdfProblem.set('That statement is too large to import.');
+      } else {
+        this.csv.set(table.csv);
+        this.fileName.set(name);
+        this.pdfRead.set({
+          pages: new Set(items.map((item) => item.page)).size,
+          rows: table.rowCount,
+        });
+      }
+    } catch (error) {
+      this.pdfProblem.set(describePdf(error));
+    } finally {
+      this.pdfReading.set(false);
+    }
+  }
+
+  /** Drops what a PDF read produced, keeping the chosen file so it can be read again. */
+  private forgetPdfResult(): void {
     this.fileName.set(null);
     this.csv.set(null);
+    this.pdfProblem.set(null);
+    this.pdfIssues.set([]);
+    this.pdfRead.set(null);
+  }
+
+  private clearFile(): void {
+    this.forgetPdfResult();
+    this.pdfName.set(null);
+    this.pdfBytes.set(null);
   }
 
   async preview(): Promise<void> {

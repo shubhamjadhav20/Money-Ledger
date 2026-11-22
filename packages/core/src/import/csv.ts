@@ -76,3 +76,14 @@ export function parseCsv(input: string, delimiter = ','): CsvRecord[] {
   if (field !== '' || fields.length > 0) endRecord();
   return records;
 }
+
+/** One CSV line for `fields`: quoted only when needed. The inverse of what parseCsv reads. */
+export function formatCsvRecord(fields: readonly string[], delimiter = ','): string {
+  return fields
+    .map((field) =>
+      field.includes(delimiter) || /["\r\n]/u.test(field)
+        ? `"${field.replaceAll('"', '""')}"`
+        : field,
+    )
+    .join(delimiter);
+}
