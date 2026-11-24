@@ -13,7 +13,7 @@
     "admin": "node src/bin/admin.ts"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.16",
+    "@electric-sql/pglite": "^0.5.17",
     "@ledger/core": "workspace:*",
     "express": "^5.3.0",
     "kysely": "^0.29.9",
