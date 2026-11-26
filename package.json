@@ -24,14 +24,14 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.2",
-    "@vitest/coverage-v8": "5.1.0",
+    "@vitest/coverage-v8": "5.1.1",
     "eslint": "^10.15.0",
-    "fast-check": "^4.10.2",
+    "fast-check": "^4.11.0",
     "pdfjs-dist": "6.5.438",
-    "pdfkit": "0.20.2",
+    "pdfkit": "0.21.0",
     "prettier": "^3.10.1",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.72.2",
-    "vitest": "^5.1.0"
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^5.1.1"
   }
 }
